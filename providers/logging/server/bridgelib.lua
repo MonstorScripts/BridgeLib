@@ -146,6 +146,8 @@ return function(bridge)
 		local response = Citizen.Await(request)
 		local status = response.status or 0
 
+		bridge:Debug(("Webhook POST returned status %d"):format(status))
+
 		if status >= 200 and status < 300 then
 			return
 		end
@@ -210,9 +212,11 @@ return function(bridge)
 	local function enqueue(category, payload)
 		local url = resolveUrl(category)
 		if not url then
-			bridge:Verbose(("No webhook configured for category '%s'"):format(tostring(category)))
+			bridge:Debug(("No webhook configured for category '%s', dropping the payload"):format(tostring(category)))
 			return
 		end
+
+		bridge:Debug(("Queued a payload for category '%s'"):format(tostring(category)))
 
 		queues[url] = queues[url] or { pending = {}, running = false }
 		queues[url].pending[#queues[url].pending + 1] = json.encode(decorate(payload))
