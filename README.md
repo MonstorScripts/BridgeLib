@@ -110,10 +110,17 @@ optional module must tolerate a no-op.
 | `inventory`   | client / server          | `qb-inventory`, `ox_inventory`   |
 | `target`      | client                   | `qb-target`, `ox_target`         |
 | `society`     | server                   | `esx_addonaccount`, `qb-management` |
+| `multijob`    | server                   | `al-multijob`                    |
+| `bossmenu`    | client / server          | `al-bossmenu`                    |
 | `fuel`        | client                   | `rcore_fuel`, `LegacyFuel`       |
 | `vehiclekeys` | client                   | `qb-vehiclekeys`, `wasabi_carlock` |
 | `dispatch`    | client                   | `cd_dispatch`                    |
 | `phone`       | client                   | `lb-phone`                       |
+
+`multijob` and `bossmenu` are single-provider modules for resources that have no established
+alternative. Declare them through `optionalModules`, since their fallback stubs are written to be
+safe: a player holds only the job the framework itself reports, the reads come back empty and the
+writes are no-ops.
 
 The `framework` module also emits lifecycle events, so adapters never call into your code directly:
 
