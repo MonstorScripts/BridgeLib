@@ -4,7 +4,7 @@ lua54("yes")
 
 author("Alivemonstor")
 description("Resource agnostic bridge layer, consumed through ox_lib require")
-version("0.2.0")
+version("0.3.0")
 
 files({
 	"init.lua",

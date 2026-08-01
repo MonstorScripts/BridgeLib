@@ -42,7 +42,7 @@
 
 local BridgeLib = {}
 
-BridgeLib._VERSION = "0.2.0"
+BridgeLib._VERSION = "0.3.0"
 
 local function noop() end
 
