@@ -1,7 +1,7 @@
 local RESOURCE_TARGET = "qb-target"
 
----@return BridgeLib.Target.Client
-return {
+---@type BridgeLib.Target.Client
+local provider = {
 	AddBoxZone = function(name, ...)
 		exports[RESOURCE_TARGET]:AddBoxZone(name, ...)
 		return name
@@ -19,3 +19,5 @@ return {
 		return exports[RESOURCE_TARGET]:RemoveTargetEntity(...)
 	end,
 }
+
+return provider

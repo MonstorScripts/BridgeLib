@@ -1,7 +1,7 @@
 ---@class BridgeLib.Inventory.Client
 local schema = {
 	---@param name string
-	---@param amount number?
+	---@param amount number? Defaults to 1.
 	---@return boolean
 	HasItem = function(name, amount) end,
 }

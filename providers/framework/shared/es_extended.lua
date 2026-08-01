@@ -4,8 +4,8 @@ local function ImportESX()
 	end
 end
 
----@return BridgeLib.Framework.Shared
-return {
+---@type BridgeLib.Framework.Shared
+local provider = {
 	GetItemDisplayName = function(item)
 		ImportESX()
 		return ESX.GetItemLabel and ESX.GetItemLabel(item) or item
@@ -23,3 +23,5 @@ return {
 		return name
 	end,
 }
+
+return provider

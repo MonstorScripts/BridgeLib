@@ -1,8 +1,9 @@
+---Optional module: with no fuel resource running, the stub is a no-op.
 ---@class BridgeLib.Fuel.Client
 local schema = {
 	---@param vehicle number
-	---@param level number
-	SetVehicleFuel = function() end,
+	---@param level number Fuel percentage, 0-100.
+	SetVehicleFuel = function(vehicle, level) end,
 }
 
 ---@type BridgeLib.Module

@@ -1,7 +1,7 @@
 local RESOURCE_PHONE = "lb-phone"
 
----@return BridgeLib.Phone.Client
-return {
+---@type BridgeLib.Phone.Client
+local provider = {
 	FormatNumber = function(number)
 		return exports[RESOURCE_PHONE]:FormatNumber(number)
 	end,
@@ -10,3 +10,5 @@ return {
 		return exports[RESOURCE_PHONE]:CreateCall({ number = tostring(number) })
 	end,
 }
+
+return provider

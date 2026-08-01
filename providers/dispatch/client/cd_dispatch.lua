@@ -1,7 +1,7 @@
 local RESOURCE_DISPATCH = "cd_dispatch"
 
----@return BridgeLib.Dispatch.Client
-return {
+---@type BridgeLib.Dispatch.Client
+local provider = {
 	SendPoliceAlert = function(data)
 		local info = exports[RESOURCE_DISPATCH]:GetPlayerInfo()
 		TriggerServerEvent("cd_dispatch:AddNotification", {
@@ -24,3 +24,5 @@ return {
 		})
 	end,
 }
+
+return provider

@@ -1,8 +1,10 @@
 local RESOURCE_FUEL = "rcore_fuel"
 
----@return BridgeLib.Fuel.Client
-return {
+---@type BridgeLib.Fuel.Client
+local provider = {
 	SetVehicleFuel = function(vehicle, level)
 		return exports[RESOURCE_FUEL]:SetVehicleFuel(vehicle, level)
 	end,
 }
+
+return provider

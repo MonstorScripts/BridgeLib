@@ -1,7 +1,7 @@
 local RESOURCE_TARGET = "ox_target"
 
----@return BridgeLib.Target.Client
-return {
+---@type BridgeLib.Target.Client
+local provider = {
 	AddBoxZone = function(name, coords, width, length, options, targetOptions)
 		local data = {
 			name = name,
@@ -48,3 +48,5 @@ return {
 		return exports[RESOURCE_TARGET]:removeLocalEntity(entity)
 	end,
 }
+
+return provider

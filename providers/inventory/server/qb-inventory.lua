@@ -1,7 +1,7 @@
 local RESOURCE_INVENTORY = "qb-inventory"
 
----@return BridgeLib.Inventory.Server
-return {
+---@type BridgeLib.Inventory.Server
+local provider = {
 	HasItem = function(...)
 		return exports[RESOURCE_INVENTORY]:HasItem(...)
 	end,
@@ -27,3 +27,5 @@ return {
 		return exports[RESOURCE_INVENTORY]:CanAddItem(...)
 	end,
 }
+
+return provider

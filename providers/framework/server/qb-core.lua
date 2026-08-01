@@ -14,8 +14,6 @@ return function(bridge)
 			end)
 		end,
 
-		---@param src number
-		---@return BridgeLib.Player
 		GetPlayer = function(src)
 			local QBCore = GetCoreObject()
 			local player = QBCore.Functions.GetPlayer(src)

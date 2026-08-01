@@ -1,32 +1,44 @@
+---@alias BridgeLib.Context "client"|"server"|"shared"
+
+---Sink for the library's diagnostics. `fatal` is expected not to return.
 ---@class BridgeLib.Logger
 ---@field debug fun(message: string)
 ---@field verbose fun(message: string)
 ---@field fatal fun(message: string)
 
+---A provider whose adapter file is not named after its resource.
 ---@class BridgeLib.Provider
----@field resource string
----@field module string?
+---@field resource string FiveM resource name, tested with `GetResourceState`.
+---@field module string? Require path of the adapter, defaulting to the module's provider path plus `resource`.
 
 ---@alias BridgeLib.ProviderList (string|BridgeLib.Provider)[]
 
+---One module's contract for one context: what it exports, who can supply it, and what a supplier
+---must implement to count.
 ---@class BridgeLib.Module
 ---@field name string
----@field context string
----@field schema table
----@field providers BridgeLib.ProviderList
----@field required string[]?
----@field providerPath string?
----@field events string[]?
+---@field context BridgeLib.Context
+---@field schema table<string, function> Every export the module defines, as callable stubs.
+---@field providers BridgeLib.ProviderList Candidate resources, in preference order.
+---@field required string[]? Schema keys a provider must implement, or loading fatals.
+---@field providerPath string? Require prefix for adapters, defaulting to `<root>.providers.<name>.<context>.`.
+---@field events string[]? Lifecycle events the module's providers may `bridge:Emit`. Documentation only.
 
 ---@class BridgeLib.Options
----@field context string
----@field schema table?
----@field modules string[]?
----@field optionalModules string[]?
----@field label string?
----@field optional string[]?
----@field logger BridgeLib.Logger?
----@field require fun(module: string): any
+---@field context BridgeLib.Context
+---@field schema table? Table that becomes `bridge.exports`; a fresh one is created when omitted.
+---@field modules string[]? Modules to declare as required.
+---@field optionalModules string[]? Modules to declare as optional.
+---@field label string? Prefix for this bridge's log lines, defaulting to `context`.
+---@field optional string[]? Schema keys exempted from `Verify`, for exports nothing has to implement.
+---@field logger BridgeLib.Logger? Overrides the library wide logger for this bridge only.
+---@field require (fun(module: string): any)? Module loader, defaulting to the ambient `require`.
+
+---A module declared on a bridge but not necessarily loaded yet.
+---@class BridgeLib.Declaration
+---@field module BridgeLib.Module
+---@field optional boolean Whether a missing provider is tolerated.
+---@field done boolean Whether `LoadDeclared` has already run for it.
 
 local BridgeLib = {}
 
@@ -45,8 +57,11 @@ BridgeLib.Logger = {
 	end,
 }
 
+---@type string
 BridgeLib.Root = "bridgelib"
 
+---Descriptors resolved so far, keyed by context then module name.
+---@type table<string, table<string, BridgeLib.Module>>
 BridgeLib.Modules = {}
 
 ---Replaces the library wide default logger. Individual bridges may still override it.
@@ -109,15 +124,17 @@ local function describe(providers)
 	return table.concat(names, ", ")
 end
 
+---One context's merged view of every module it declared.
 ---@class BridgeLib.Bridge
----@field exports table
----@field context string
+---@field exports table The flat table of functions callers use.
+---@field context BridgeLib.Context
 ---@field label string
 ---@field logger BridgeLib.Logger?
----@field implemented table<string, boolean>
----@field loaded table<string, string>
+---@field implemented table<string, boolean> Schema keys a provider supplied, or that `Verify` may skip.
+---@field loaded table<string, string> Module name to the resource that satisfied it.
 ---@field declared BridgeLib.Declaration[]
----@field handlers table<string, function[]>
+---@field handlers table<string, function[]> Lifecycle handlers registered through `On`.
+---@field require fun(module: string): any Loader used for adapter and module descriptor files.
 local Bridge = {}
 Bridge.__index = Bridge
 
@@ -172,8 +189,9 @@ function Bridge:MarkImplemented(keys)
 	end
 end
 
----Copies schema stubs onto the bridge without claiming they are implemented.
----@param schema table
+---Copies schema stubs onto the bridge without claiming they are implemented. Keys already present
+---are left alone, so the first module to declare an export wins.
+---@param schema table<string, function>
 function Bridge:Install(schema)
 	for key, value in pairs(schema) do
 		if self.exports[key] == nil then
@@ -182,6 +200,8 @@ function Bridge:Install(schema)
 	end
 end
 
+---Requires one adapter file, calling it with the bridge when it returns a builder function.
+---Returns nil rather than raising when the adapter fails to load or yields the wrong shape.
 ---@param resource string
 ---@param module string
 ---@return table? implementation
@@ -209,7 +229,7 @@ function Bridge:LoadModule(resource, module)
 end
 
 ---@param resource string
----@param implementation table
+---@param implementation table<string, function>
 function Bridge:Apply(resource, implementation)
 	for key, value in pairs(implementation) do
 		self:Verbose(("Exporting '%s' from resource '%s'"):format(key, resource))
@@ -218,6 +238,8 @@ function Bridge:Apply(resource, implementation)
 	end
 end
 
+---Loads the adapter for the first running provider. A provider whose resource is running but whose
+---adapter fails to load resolves to nothing rather than falling through to the next candidate.
 ---@param providers BridgeLib.ProviderList
 ---@param pathPrefix string?
 ---@return string? resource, table? implementation
@@ -267,6 +289,7 @@ function Bridge:LoadOptional(providers, pathPrefix)
 	return resource
 end
 
+---Returns a registered descriptor, otherwise requires it from the catalog and registers it.
 ---@param name string
 ---@return BridgeLib.Module
 function Bridge:GetModule(name)
@@ -291,7 +314,8 @@ function Bridge:GetProviderPath(module)
 	return module.providerPath or ("%s.providers.%s.%s."):format(BridgeLib.Root, module.name, module.context)
 end
 
----Installs a catalog module's schema without loading a provider for it yet.
+---Installs a catalog module's schema without loading a provider for it yet. Keys outside `required`
+---count as implemented from the start, so `Verify` only insists on the mandatory ones.
 ---@param name string
 ---@param isOptional boolean
 ---@return BridgeLib.Declaration
@@ -312,7 +336,7 @@ function Bridge:Declare(name, isOptional)
 		end
 	end
 
-	---@class BridgeLib.Declaration
+	---@type BridgeLib.Declaration
 	local declaration = {
 		module = module,
 		optional = isOptional,

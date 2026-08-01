@@ -4,8 +4,8 @@ local GetCoreObject = function()
 	return exports[RESOURCE_CORE]:GetCoreObject()
 end
 
----@return BridgeLib.Framework.Shared
-return {
+---@type BridgeLib.Framework.Shared
+local provider = {
 	GetItemDisplayName = function(item)
 		local QBCore = GetCoreObject()
 		return (QBCore.Shared.Items[item:lower()] or { label = "ERROR_UNKNOWN_ITEM" }).label
@@ -15,3 +15,5 @@ return {
 		return (QBCore.Shared.Jobs[name:lower()] or { label = "ERROR_UNKNOWN_JOB" }).label
 	end,
 }
+
+return provider
