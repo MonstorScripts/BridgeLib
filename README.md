@@ -109,6 +109,7 @@ optional module must tolerate a no-op.
 | `framework`   | client / server / shared | `qb-core`, `es_extended`         |
 | `inventory`   | client / server          | `qb-inventory`, `ox_inventory`   |
 | `target`      | client                   | `qb-target`, `ox_target`         |
+| `zones`       | client                   | `ox_lib`, `PolyZone`             |
 | `society`     | server                   | `esx_addonaccount`, `qb-management` |
 | `multijob`    | server                   | `al-multijob`                    |
 | `bossmenu`    | client / server          | `al-bossmenu`                    |
@@ -116,6 +117,12 @@ optional module must tolerate a no-op.
 | `vehiclekeys` | client                   | `qb-vehiclekeys`, `wasabi_carlock` |
 | `dispatch`    | client                   | `cd_dispatch`                    |
 | `phone`       | client                   | `lb-phone`                       |
+
+`zones` prefers `ox_lib`, which every consumer already runs, so the `PolyZone` adapter is only
+reached when ox_lib is absent. PolyZone ships no exports — its zone classes are globals — so that
+adapter additionally needs `@PolyZone/client.lua` and `@PolyZone/CircleZone.lua` in the consumer's
+`shared_scripts`, and fatals when they are missing. The ox_lib adapter approximates PolyZone's
+unbounded height with a 10000 unit thickness and its 2D circles with spheres.
 
 `multijob` and `bossmenu` are single-provider modules for resources that have no established
 alternative. Declare them through `optionalModules`, since their fallback stubs are written to be
