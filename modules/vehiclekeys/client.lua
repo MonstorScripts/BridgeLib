@@ -12,6 +12,7 @@ return {
 	context = "client",
 	providers = {
 		"qb-vehiclekeys",
+		"wasabi_carlock",
 	},
 	schema = schema,
 }

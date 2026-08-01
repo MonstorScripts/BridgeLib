@@ -4,6 +4,15 @@ local schema = {
 	---@param amount number? Defaults to 1.
 	---@return boolean
 	HasItem = function(name, amount) end,
+
+	---NUI path the inventory serves its item images from, for resources that render their own slots.
+	---@return string
+	GetImagePath = function() end,
+
+	---@param inventoryType string Inventory kind, e.g. "stash" or "shop".
+	---@param data table Identity of the inventory, in the shape the inventory resource expects.
+	---@return boolean opened
+	OpenInventory = function(inventoryType, data) end,
 }
 
 ---@type BridgeLib.Module
@@ -16,6 +25,8 @@ return {
 	},
 	required = {
 		"HasItem",
+		"GetImagePath",
+		"OpenInventory",
 	},
 	schema = schema,
 }

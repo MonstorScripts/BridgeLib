@@ -4,6 +4,22 @@ local GetCoreObject = function()
 	return exports[RESOURCE_CORE]:getSharedObject()
 end
 
+---@param job table?
+---@return BridgeLib.LiveJob?
+local function normalizeJob(job)
+	if type(job) ~= "table" then
+		return nil
+	end
+
+	return {
+		name = job.name or "",
+		label = job.label or job.name or "",
+		grade = tonumber(job.grade) or 0,
+		gradeName = job.grade_label or job.grade_name or tostring(job.grade or 0),
+		onDuty = job.onDuty or false,
+	}
+end
+
 ---@param bridge BridgeLib.Bridge
 ---@return BridgeLib.Framework.Client
 return function(bridge)
@@ -11,14 +27,15 @@ return function(bridge)
 		InitNetworkEvents = function()
 			RegisterNetEvent("esx:playerLoaded", function(xPlayer)
 				bridge:Emit("playerLoaded", xPlayer)
+				bridge:Emit("jobUpdated", normalizeJob(xPlayer and xPlayer.job))
 			end)
 
 			RegisterNetEvent("esx:setJob", function(job)
-				bridge:Emit("jobUpdated", job)
+				bridge:Emit("jobUpdated", normalizeJob(job))
 			end)
 
 			RegisterNetEvent("esx:setPlayerData", function(PlayerData)
-				bridge:Emit("jobUpdated", PlayerData.job)
+				bridge:Emit("jobUpdated", normalizeJob(PlayerData.job))
 				bridge:Emit("playerDataUpdated", PlayerData)
 			end)
 
@@ -30,9 +47,10 @@ return function(bridge)
 		GetLocalPlayerData = function()
 			local ESX = GetCoreObject()
 			local PlayerData = ESX.GetPlayerData()
+			local job = normalizeJob(PlayerData and PlayerData.job)
 			return {
-				job = PlayerData.job,
-				grade = PlayerData.job and PlayerData.job.grade or nil,
+				job = job,
+				grade = job and job.grade or nil,
 			}
 		end,
 
@@ -72,6 +90,11 @@ return function(bridge)
 					onFinish()
 				end
 			end
+		end,
+
+		GetClosestVehicle = function(coords)
+			local ESX = GetCoreObject()
+			return ESX.Game.GetClosestVehicle(coords)
 		end,
 	}
 end

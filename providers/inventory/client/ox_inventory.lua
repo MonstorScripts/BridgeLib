@@ -13,5 +13,13 @@ return function(bridge)
 				return hasItemMaybeTable >= (amount or 1)
 			end
 		end,
+
+		GetImagePath = function()
+			return "ox_inventory/web/images"
+		end,
+
+		OpenInventory = function(inventoryType, data)
+			return exports[RESOURCE_INVENTORY]:openInventory(inventoryType, data) and true or false
+		end,
 	}
 end

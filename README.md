@@ -15,7 +15,23 @@ inside the adapters themselves.
 
 ## Install
 
-Add it as a submodule at the root of your resource:
+### As its own resource
+
+Drop the folder in your resources and `ensure` it before its consumers. Its `fxmanifest.lua` only
+declares `files`, so nothing is executed on start — the consuming resource pulls what it needs
+through ox_lib's cross-resource `require`:
+
+```lua
+local BridgeLib = require("@BridgeLib.init")
+BridgeLib.SetRoot("@BridgeLib")
+```
+
+The consumer needs `@ox_lib/init.lua` in its own `shared_scripts` for `require` to exist, and
+`BridgeLib` must be started, or the client never receives the files.
+
+### As a submodule
+
+Add it at the root of your resource:
 
 ```bash
 git submodule add <repo-url> bridgelib
@@ -88,24 +104,37 @@ optional module must tolerate a no-op.
 
 ## Catalog
 
-| module        | context                  | providers                       |
-| ------------- | ------------------------ | ------------------------------- |
-| `framework`   | client / server / shared | `qb-core`, `es_extended`        |
-| `inventory`   | client / server          | `qb-inventory`, `ox_inventory`  |
-| `target`      | client                   | `qb-target`, `ox_target`        |
-| `fuel`        | client                   | `rcore_fuel`, `LegacyFuel`      |
-| `vehiclekeys` | client                   | `qb-vehiclekeys`                |
-| `dispatch`    | client                   | `cd_dispatch`                   |
-| `phone`       | client                   | `lb-phone`                      |
+| module        | context                  | providers                        |
+| ------------- | ------------------------ | -------------------------------- |
+| `framework`   | client / server / shared | `qb-core`, `es_extended`         |
+| `inventory`   | client / server          | `qb-inventory`, `ox_inventory`   |
+| `target`      | client                   | `qb-target`, `ox_target`         |
+| `society`     | server                   | `esx_addonaccount`, `qb-management` |
+| `fuel`        | client                   | `rcore_fuel`, `LegacyFuel`       |
+| `vehiclekeys` | client                   | `qb-vehiclekeys`, `wasabi_carlock` |
+| `dispatch`    | client                   | `cd_dispatch`                    |
+| `phone`       | client                   | `lb-phone`                       |
 
 The `framework` module also emits lifecycle events, so adapters never call into your code directly:
 
-| event               | context         | payload      |
-| ------------------- | --------------- | ------------ |
-| `playerLoaded`      | client / server | `source`     |
-| `playerUnloaded`    | client          | —            |
-| `jobUpdated`        | client          | `job`        |
-| `playerDataUpdated` | client          | `playerData` |
+| event               | context         | payload                 |
+| ------------------- | --------------- | ----------------------- |
+| `playerLoaded`      | client / server | `source`                |
+| `playerUnloaded`    | client / server | `source` (server only)  |
+| `jobUpdated`        | client / server | `job` / `source, job`   |
+| `playerDataUpdated` | client          | `playerData`            |
+
+Job payloads are normalised before they are emitted, so handlers see the same shape on either
+framework: `{ name, label, grade, gradeName, gradeSalary, onDuty }`. `GetJobs` normalises the job
+catalog the same way, into `{ [name] = { name, label, grades = { [gradeString] = { grade, name,
+label, salary } } } }`.
+
+`GetPlayer`, `GetPlayerByIdentifier` and `GetPlayers` return a framework-neutral player: `UniqueId`,
+`Source`, `Name`, `JobName`, `JobLabel`, `JobGrade`, `JobGradeName`, `JobGradeSalary`, `JobOnDuty`,
+plus `SetOnDuty`, `SetJob`, `GetAccountMoney`, `AddAccountMoney` and `RemoveAccountMoney`.
+
+`GetOfflinePlayerName` and `SetOfflinePlayerJob` reach past the framework into its player table, so
+the consuming resource has to load oxmysql for them to work.
 
 ## Layout
 

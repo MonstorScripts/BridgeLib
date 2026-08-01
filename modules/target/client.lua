@@ -3,6 +3,7 @@
 
 ---One entry in a target's context menu.
 ---@class BridgeLib.Target.Option
+---@field name string? Identifier for the entry, used by the providers that key options by name.
 ---@field label string
 ---@field icon string? Font Awesome class, e.g. "fas fa-box".
 ---@field action fun(entity: number)?

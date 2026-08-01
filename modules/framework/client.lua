@@ -1,13 +1,23 @@
 ---Events a framework client adapter emits through `bridge:Emit`.
 ---@alias BridgeLib.Framework.ClientEvent
----| "playerLoaded" # The local player finished loading. ESX passes its xPlayer, qb-core passes nothing.
+---| "playerLoaded" # The local player finished loading. ESX passes its xPlayer, qb-core passes its player data.
 ---| "playerUnloaded" # The local player logged out.
----| "jobUpdated" # `(job: table)`, fired both on job change and on any player data change.
+---| "jobUpdated" # `(job: BridgeLib.LiveJob?)`, fired both on job change and on any player data change.
 ---| "playerDataUpdated" # `(playerData: table)`, the framework's whole player data table.
+
+---A player's current job, normalised out of the framework's own job table. Emitted with
+---`jobUpdated` on both contexts and returned inside `BridgeLib.PlayerData`.
+---@class BridgeLib.LiveJob
+---@field name string
+---@field label string Display label, falling back to `name`.
+---@field grade number Grade level, flattened out of the framework's nesting.
+---@field gradeName string
+---@field gradeSalary number? Pay for the grade. Absent on the client, where ESX does not expose it.
+---@field onDuty boolean
 
 ---The subset of framework player data the library normalises across frameworks.
 ---@class BridgeLib.PlayerData
----@field job table? The framework's raw job table.
+---@field job BridgeLib.LiveJob? nil when no player is loaded.
 ---@field grade number? Job grade level, flattened out of the framework's nesting.
 
 ---@class BridgeLib.Framework.Client
@@ -37,6 +47,11 @@ local schema = {
 	---@param onFinish function?
 	---@param onCancel function?
 	Progressbar = function(name, label, duration, useWhileDead, canCancel, disableControls, animation, prop, propTwo, onFinish, onCancel) end,
+
+	---Nearest vehicle to a point, using the framework's own search.
+	---@param coords vector3
+	---@return number vehicle, number distance
+	GetClosestVehicle = function(coords) end,
 }
 
 ---@type BridgeLib.Module
@@ -58,6 +73,7 @@ return {
 		"GetLocalPlayerData",
 		"LocalNotify",
 		"Progressbar",
+		"GetClosestVehicle",
 	},
 	schema = schema,
 }
