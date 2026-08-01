@@ -42,9 +42,9 @@ return {
 	context = "server",
 	providers = {
 		"lb-phone",
-		---Last resort: BridgeLib is always running, so this entry always matches, and the adapter
+		---Last resort: the library ships this adapter, so this entry always matches, and it
 		---resolves to nothing unless `phone.database` in the config describes a phone's tables.
-		{ resource = "BridgeLib", module = "@BridgeLib.providers.phone.server.sql" },
+		{ adapter = "sql" },
 	},
 	schema = schema,
 	events = { "messageSent" },

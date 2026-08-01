@@ -206,7 +206,39 @@ return function(bridge)
 end
 ```
 
-Provider order in the descriptor is priority order — the first one that is running wins.
+Provider order in the descriptor is priority order — the first one that is running wins. Resource
+names are matched with `GetResourceState`, which is case sensitive, so the filename and the entry in
+`providers` must both match the resource folder's name exactly.
+
+A provider entry may also be a table, for an adapter whose file is not named after its resource:
+
+```lua
+providers = {
+    "lb-phone",
+    { resource = "some_resource", adapter = "shared_adapter" },
+}
+```
+
+### Self-hosted providers
+
+An adapter that speaks to no particular resource — one the library implements itself, like
+`logging`'s Discord webhooks or `phone`'s raw SQL fallback — omits `resource` and names only its
+`adapter`:
+
+```lua
+providers = {
+    { adapter = "bridgelib" },
+}
+```
+
+Nothing is checked with `GetResourceState` for these: the adapter ships with the library, so it is
+available wherever the library is. Do not name the library as a resource instead. Its code runs
+inside the *consuming* resource through ox_lib's cross-resource require — bridgelib starts no
+scripts of its own — so neither a hardcoded name nor `GetCurrentResourceName()` describes what is
+really running, and on an optional module a mismatch fails silently.
+
+Since such an entry always matches, list it last. An adapter that cannot work in the current setup
+returns nothing, which leaves the module on its schema stubs.
 
 ### Adding a module
 

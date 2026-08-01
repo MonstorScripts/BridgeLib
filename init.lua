@@ -6,10 +6,11 @@
 ---@field verbose fun(message: string)
 ---@field fatal fun(message: string)
 
----A provider whose adapter file is not named after its resource.
+---A provider whose adapter file is not named after its resource, or which the library hosts itself.
 ---@class BridgeLib.Provider
----@field resource string FiveM resource name, tested with `GetResourceState`.
----@field module string? Require path of the adapter, defaulting to the module's provider path plus `resource`.
+---@field resource string? FiveM resource name, tested with `GetResourceState`. Omit for an adapter the library ships, which is available wherever the library is.
+---@field adapter string? Adapter file name inside the module's provider path, defaulting to `resource`. Required when `resource` is omitted.
+---@field module string? Require path of the adapter, overriding `adapter`.
 
 ---@alias BridgeLib.ProviderList (string|BridgeLib.Provider)[]
 
@@ -119,12 +120,16 @@ end
 
 ---@param provider string|BridgeLib.Provider
 ---@param pathPrefix string?
----@return string resource, string module
+---@return string? resource, string module, string label
 local function resolveProvider(provider, pathPrefix)
 	if type(provider) == "string" then
-		return provider, (pathPrefix or "") .. provider
+		return provider, (pathPrefix or "") .. provider, provider
 	end
-	return provider.resource, provider.module or ((pathPrefix or "") .. provider.resource)
+
+	local name = provider.resource or provider.adapter
+	assert(type(name) == "string", "a provider requires a resource or an adapter name")
+
+	return provider.resource, provider.module or ((pathPrefix or "") .. (provider.adapter or name)), name
 end
 
 ---@param providers BridgeLib.ProviderList
@@ -132,7 +137,8 @@ end
 local function describe(providers)
 	local names = {}
 	for index, provider in ipairs(providers) do
-		names[index] = type(provider) == "string" and provider or provider.resource
+		local _, _, label = resolveProvider(provider)
+		names[index] = label
 	end
 	return table.concat(names, ", ")
 end
@@ -248,26 +254,26 @@ end
 
 ---Requires one adapter file, calling it with the bridge when it returns a builder function.
 ---Returns nil rather than raising when the adapter fails to load or yields the wrong shape.
----@param resource string
+---@param provider string
 ---@param module string
 ---@return table? implementation
-function Bridge:LoadModule(resource, module)
+function Bridge:LoadModule(provider, module)
 	local success, result = pcall(self.require, module)
 	if not success then
-		self:Debug(("Error loading module '%s' for resource '%s': %s"):format(module, resource, result))
+		self:Debug(("Error loading module '%s' for provider '%s': %s"):format(module, provider, result))
 		return nil
 	end
 
 	if type(result) == "function" then
 		success, result = pcall(result, self)
 		if not success then
-			self:Debug(("Error building module '%s' for resource '%s': %s"):format(module, resource, result))
+			self:Debug(("Error building module '%s' for provider '%s': %s"):format(module, provider, result))
 			return nil
 		end
 	end
 
 	if type(result) ~= "table" then
-		self:Debug(("Module '%s' for resource '%s' did not return a table"):format(module, resource))
+		self:Debug(("Module '%s' for provider '%s' did not return a table"):format(module, provider))
 		return nil
 	end
 
@@ -284,18 +290,19 @@ function Bridge:Apply(resource, implementation)
 	end
 end
 
----Loads the adapter for the first running provider. A provider whose resource is running but whose
----adapter fails to load resolves to nothing rather than falling through to the next candidate.
+---Loads the adapter for the first available provider. A provider whose resource is running but whose
+---adapter fails to load resolves to nothing rather than falling through to the next candidate. A
+---provider naming no resource is one the library ships itself, so it is always available.
 ---@param providers BridgeLib.ProviderList
 ---@param pathPrefix string?
 ---@return string? resource, table? implementation
 function Bridge:Resolve(providers, pathPrefix)
 	for _, provider in ipairs(providers) do
-		local resource, module = resolveProvider(provider, pathPrefix)
-		if BridgeLib.HasResource(resource) then
-			local implementation = self:LoadModule(resource, module)
+		local resource, module, label = resolveProvider(provider, pathPrefix)
+		if not resource or BridgeLib.HasResource(resource) then
+			local implementation = self:LoadModule(label, module)
 			if implementation then
-				return resource, implementation
+				return label, implementation
 			end
 			return nil, nil
 		end
