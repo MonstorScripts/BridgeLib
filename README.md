@@ -155,9 +155,15 @@ the consuming resource has to load oxmysql for them to work.
 ```
 bridgelib/
   init.lua                                 core: New, Use, Load, logging, events
+  config.lua                               server-only settings, one section per module
   modules/<module>/<context>.lua           schema + provider list + required keys
   providers/<module>/<context>/<name>.lua  one file per supported resource
 ```
+
+`config.lua` is the only file kept out of the manifest's `files()`. Clients download everything
+listed there, so a webhook URL written into a shipped file is a webhook URL handed to every player
+who connects. Keep secrets in `config.lua` (or pass them to `SetConfig` from a server script), and
+do not add it to `files()` — only server contexts need to read it.
 
 ### Adding a provider
 

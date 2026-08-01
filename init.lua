@@ -159,6 +159,10 @@ end
 ---The library's configuration, loaded from `<root>.config` the first time anything asks for it. A
 ---missing or malformed file resolves to an empty table, so every module falls back to its defaults
 ---rather than the library failing to load.
+---
+---`config.lua` is not shipped to clients, so this resolves to an empty table in a client context
+---unless one was handed over with `SetConfig`. Nothing secret in it can leak that way, and no
+---client module reads it.
 ---@return table
 function Bridge:GetConfig()
 	if BridgeLib.Config then

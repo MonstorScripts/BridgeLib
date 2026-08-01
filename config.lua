@@ -6,6 +6,10 @@
 ---Editing this file is the usual way to configure the library. A server that would rather keep its
 ---secrets out of the repository can call `BridgeLib.SetConfig(table)` before building a bridge, and
 ---the table passed in replaces this file entirely.
+---
+---This file is deliberately absent from the manifest's `files()`, so it is never downloaded to a
+---client. Only server contexts can read it, which is what makes it safe to keep webhook URLs in
+---here. Listing it in `files()` would hand every secret in it to every player who connects.
 
 return {
 	---Discord logging. Consuming resources pick the category name they log under; the ones the
