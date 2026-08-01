@@ -238,14 +238,5 @@ return function(bridge)
 			local affectedRows = MySQL.update.await("UPDATE `users` SET `job` = ?, `job_grade` = ? WHERE `identifier` = ?", { jobName, grade, identifier })
 			return (affectedRows or 0) > 0
 		end,
-
-		LogFields = function(category, title, colour, fields)
-			local ESX = GetCoreObject()
-			if not ESX.DiscordLogFields then
-				return bridge:Debug(("%s: %s"):format(category, title))
-			end
-
-			return ESX.DiscordLogFields(category, title, colour, fields)
-		end,
 	}
 end

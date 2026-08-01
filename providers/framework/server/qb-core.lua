@@ -1,5 +1,4 @@
 local RESOURCE_CORE = "qb-core"
-local RESOURCE_LOGS = "qb-log"
 
 local ACCOUNTS = {
 	money = "cash",
@@ -248,19 +247,6 @@ return function(bridge)
 
 			local affectedRows = MySQL.update.await("UPDATE `players` SET `job` = ? WHERE `citizenid` = ?", { json.encode(job), identifier })
 			return (affectedRows or 0) > 0
-		end,
-
-		LogFields = function(category, title, colour, fields)
-			if GetResourceState(RESOURCE_LOGS) ~= "started" then
-				return bridge:Debug(("%s: %s"):format(category, title))
-			end
-
-			local lines = {}
-			for _, field in ipairs(fields or {}) do
-				lines[#lines + 1] = ("**%s:** %s"):format(field.name, tostring(field.value))
-			end
-
-			return exports[RESOURCE_LOGS]:SendLog(category, 0, title, colour, table.concat(lines, "\n"))
 		end,
 	}
 end

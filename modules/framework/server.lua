@@ -89,14 +89,6 @@ local schema = {
 	---@param grade number
 	---@return boolean written
 	SetOfflinePlayerJob = function(identifier, jobName, grade) end,
-
-	---Writes a structured entry to whatever logging sink the framework offers, falling back to the
-	---bridge's debug logger when it offers none.
-	---@param category string Log channel or webhook name.
-	---@param title string
-	---@param colour string Decimal colour, as Discord embeds take it.
-	---@param fields { name: string, value: any, inline: boolean? }[]
-	LogFields = function(category, title, colour, fields) end,
 }
 
 ---@type BridgeLib.Module
@@ -125,7 +117,6 @@ return {
 		"RefreshJobs",
 		"GetOfflinePlayerName",
 		"SetOfflinePlayerJob",
-		"LogFields",
 	},
 	schema = schema,
 }

@@ -7,8 +7,8 @@
 ---`bridgelib_webhook_username`, `bridgelib_webhook_avatar` and `bridgelib_webhook_footer` decorate
 ---every payload when they are set.
 ---
----This module defines `LogFields` under the same signature as the framework module's, so a consumer
----that declares both must declare `logging` after `framework` for these implementations to win.
+---This is the only place the library logs from. The framework module deliberately exposes no
+---logging of its own, so what a server sees never depends on which framework it runs.
 
 ---One field of a Discord embed. `value` is stringified and truncated by the provider.
 ---@class BridgeLib.Logging.Field
