@@ -1,11 +1,10 @@
 ---Structured logging to Discord, posted by the library itself rather than through a framework.
 ---
 ---A category names one destination. Its URL is resolved, in order, from `SetWebhookUrl`, the
----`bridgelib_webhook_<category>` convar, then the `bridgelib_webhook_default` convar. A category
----that resolves to no URL is dropped, so a server that configures nothing logs nothing.
+---matching key under `logging.webhooks` in the library's config, then `logging.webhooks.default`.
+---A category that resolves to no URL is dropped, so a server that configures nothing logs nothing.
 ---
----`bridgelib_webhook_username`, `bridgelib_webhook_avatar` and `bridgelib_webhook_footer` decorate
----every payload when they are set.
+---`logging.username`, `logging.avatarUrl` and `logging.footer` decorate every payload when set.
 ---
 ---This is the only place the library logs from. The framework module deliberately exposes no
 ---logging of its own, so what a server sees never depends on which framework it runs.
@@ -18,14 +17,14 @@
 
 ---@class BridgeLib.Logging.Server
 local schema = {
-	---Overrides a category's webhook URL for the lifetime of the resource, ahead of any convar.
+	---Overrides a category's webhook URL for the lifetime of the resource, ahead of the config.
 	---@param category string
-	---@param url string? Passing nil clears the override and falls back to the convars.
+	---@param url string? Passing nil clears the override and falls back to the config.
 	SetWebhookUrl = function(category, url) end,
 
 	---The URL a category currently resolves to.
 	---@param category string
-	---@return string? url nil when neither an override nor a convar supplies one.
+	---@return string? url nil when neither an override nor the config supplies one.
 	GetWebhookUrl = function(category) end,
 
 	---Queues an embed built from a list of fields.

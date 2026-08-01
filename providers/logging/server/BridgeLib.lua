@@ -32,54 +32,37 @@ local function truncate(value, limit)
 	return text:sub(1, limit - 3) .. "..."
 end
 
----@param name string
+---Config entries are optional, and an empty string reads the same as an absent one so a shipped
+---template full of `""` behaves as though it were untouched.
+---@param value any
 ---@return string?
-local function convar(name)
-	local value = GetConvar(name, "")
-	if value == "" then
+local function setting(value)
+	if type(value) ~= "string" or value == "" then
 		return nil
 	end
 	return value
 end
 
----Convar names take a restricted alphabet, so a category is folded into one before lookup.
----@param category string
----@return string
-local function convarSuffix(category)
-	return (tostring(category):lower():gsub("[^%w_]", "_"))
-end
-
+---Category keys are matched as written first, then case-insensitively, so a category named
+---`BossMenu` still finds a `bossmenu` entry.
+---@param webhooks table
 ---@param category string
 ---@return string?
-local function resolveUrl(category)
-	if category and overrides[category] then
-		return overrides[category]
+local function lookup(webhooks, category)
+	local exact = setting(webhooks[category])
+	if exact then
+		return exact
 	end
 
-	if category then
-		local scoped = convar(("bridgelib_webhook_%s"):format(convarSuffix(category)))
-		if scoped then
-			return scoped
+	local wanted = tostring(category):lower()
+
+	for key, url in pairs(webhooks) do
+		if type(key) == "string" and key:lower() == wanted then
+			return setting(url)
 		end
 	end
 
-	return convar("bridgelib_webhook_default")
-end
-
----@param payload table
----@return table
-local function decorate(payload)
-	payload.username = payload.username or convar("bridgelib_webhook_username")
-	payload.avatar_url = payload.avatar_url or convar("bridgelib_webhook_avatar")
-
-	local footer = convar("bridgelib_webhook_footer")
-	if footer then
-		for _, embed in ipairs(payload.embeds or {}) do
-			embed.footer = embed.footer or { text = truncate(footer, LIMIT_TITLE) }
-		end
-	end
-
-	return payload
+	return nil
 end
 
 ---@param fields BridgeLib.Logging.Field[]?
@@ -110,6 +93,44 @@ end
 ---@param bridge BridgeLib.Bridge
 ---@return BridgeLib.Logging.Server
 return function(bridge)
+	---@param category string
+	---@return string?
+	local function resolveUrl(category)
+		if category and overrides[category] then
+			return overrides[category]
+		end
+
+		local config = bridge:GetModuleConfig("logging")
+		local webhooks = type(config.webhooks) == "table" and config.webhooks or {}
+
+		if category then
+			local scoped = lookup(webhooks, category)
+			if scoped then
+				return scoped
+			end
+		end
+
+		return setting(webhooks.default)
+	end
+
+	---@param payload table
+	---@return table
+	local function decorate(payload)
+		local config = bridge:GetModuleConfig("logging")
+
+		payload.username = payload.username or setting(config.username)
+		payload.avatar_url = payload.avatar_url or setting(config.avatarUrl)
+
+		local footer = setting(config.footer)
+		if footer then
+			for _, embed in ipairs(payload.embeds or {}) do
+				embed.footer = embed.footer or { text = truncate(footer, LIMIT_TITLE) }
+			end
+		end
+
+		return payload
+	end
+
 	---Posts one payload and reports whether it should be retried, blocking the queue thread until
 	---Discord answers.
 	---@param url string

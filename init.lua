@@ -42,7 +42,7 @@
 
 local BridgeLib = {}
 
-BridgeLib._VERSION = "0.4.0"
+BridgeLib._VERSION = "0.5.0"
 
 local function noop() end
 
@@ -63,6 +63,19 @@ BridgeLib.Root = "bridgelib"
 ---Descriptors resolved so far, keyed by context then module name.
 ---@type table<string, table<string, BridgeLib.Module>>
 BridgeLib.Modules = {}
+
+---Settings shared by every bridge, loaded once from `<root>.config` on first use. Modules read
+---their own section out of it, so one file configures the whole library.
+---@type table?
+BridgeLib.Config = nil
+
+---Supplies configuration directly, ahead of the `config.lua` the library ships. Servers that keep
+---their secrets outside the repository call this before building a bridge.
+---@param config table
+function BridgeLib.SetConfig(config)
+	assert(type(config) == "table", "BridgeLib.SetConfig expects a config table")
+	BridgeLib.Config = config
+end
 
 ---Replaces the library wide default logger. Individual bridges may still override it.
 ---@param logger BridgeLib.Logger
@@ -141,6 +154,35 @@ Bridge.__index = Bridge
 ---@return BridgeLib.Logger
 function Bridge:GetLogger()
 	return self.logger or BridgeLib.Logger
+end
+
+---The library's configuration, loaded from `<root>.config` the first time anything asks for it. A
+---missing or malformed file resolves to an empty table, so every module falls back to its defaults
+---rather than the library failing to load.
+---@return table
+function Bridge:GetConfig()
+	if BridgeLib.Config then
+		return BridgeLib.Config
+	end
+
+	local path = ("%s.config"):format(BridgeLib.Root)
+	local success, config = pcall(self.require, path)
+
+	if not success or type(config) ~= "table" then
+		self:Debug(("No config loaded from '%s', using defaults"):format(path))
+		config = {}
+	end
+
+	BridgeLib.Config = config
+	return config
+end
+
+---One module's section of the configuration, always a table.
+---@param name string
+---@return table
+function Bridge:GetModuleConfig(name)
+	local section = self:GetConfig()[name]
+	return type(section) == "table" and section or {}
 end
 
 ---@param message string
