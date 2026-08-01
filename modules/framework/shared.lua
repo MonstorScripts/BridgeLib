@@ -7,6 +7,10 @@ local schema = {
 	---@param name string
 	---@return string label Falls back to a placeholder or the job name when the job is unknown.
 	GetJobName = function(name) end,
+
+	---@param name string
+	---@return boolean exists Whether the framework knows about a job with this name.
+	DoesJobExist = function(name) end,
 }
 
 ---@type BridgeLib.Module
@@ -20,6 +24,7 @@ return {
 	required = {
 		"GetItemDisplayName",
 		"GetJobName",
+		"DoesJobExist",
 	},
 	schema = schema,
 }

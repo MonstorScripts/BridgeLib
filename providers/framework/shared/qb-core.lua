@@ -14,6 +14,10 @@ local provider = {
 		local QBCore = GetCoreObject()
 		return (QBCore.Shared.Jobs[name:lower()] or { label = "ERROR_UNKNOWN_JOB" }).label
 	end,
+	DoesJobExist = function(name)
+		local QBCore = GetCoreObject()
+		return QBCore.Shared.Jobs[name:lower()] ~= nil
+	end,
 }
 
 return provider

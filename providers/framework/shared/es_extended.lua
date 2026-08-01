@@ -22,6 +22,18 @@ local provider = {
 		end
 		return name
 	end,
+	DoesJobExist = function(name)
+		ImportESX()
+		local job = name:lower()
+		local jobs = ESX.GetJobs and ESX.GetJobs() or {}
+
+		for jobName in pairs(jobs) do
+			if jobName:lower() == job then
+				return true
+			end
+		end
+		return false
+	end,
 }
 
 return provider
