@@ -1,17 +1,35 @@
 local RESOURCE_INVENTORY = "ox_inventory"
 
----@param bridge BridgeLib.Bridge
+---Totals an ox_inventory Search result, which is either a plain count, a map of
+---item name to count, or a list of matching slots.
+---@param result number|table|nil
+---@return number
+local function totalCount(result)
+	if type(result) == "number" then
+		return result
+	end
+
+	if type(result) ~= "table" then
+		return 0
+	end
+
+	local total = 0
+	for _, entry in pairs(result) do
+		if type(entry) == "number" then
+			total = total + entry
+		elseif type(entry) == "table" then
+			total = total + (entry.count or entry.amount or 0)
+		end
+	end
+
+	return total
+end
+
 ---@return BridgeLib.Inventory.Client
-return function(bridge)
+return function()
 	return {
 		HasItem = function(name, amount)
-			local hasItemMaybeTable = exports[RESOURCE_INVENTORY]:Search("count", name)
-			if type(hasItemMaybeTable) == "table" then
-				bridge:Fatal("ox_inventory returned a table for HasItem, which is not supported.")
-				return false
-			else
-				return hasItemMaybeTable >= (amount or 1)
-			end
+			return totalCount(exports[RESOURCE_INVENTORY]:Search("count", name)) >= (amount or 1)
 		end,
 
 		GetImagePath = function()
