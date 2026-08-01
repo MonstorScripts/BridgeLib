@@ -116,7 +116,8 @@ optional module must tolerate a no-op.
 | `fuel`        | client                   | `rcore_fuel`, `LegacyFuel`       |
 | `vehiclekeys` | client                   | `qb-vehiclekeys`, `wasabi_carlock` |
 | `dispatch`    | client                   | `cd_dispatch`                    |
-| `phone`       | client                   | `lb-phone`                       |
+| `phone`       | client / server          | `lb-phone`, `sql`                |
+| `logging`     | server                   | `BridgeLib`                      |
 
 `zones` prefers `ox_lib`, which every consumer already runs, so the `PolyZone` adapter is only
 reached when ox_lib is absent. PolyZone ships no exports — its zone classes are globals — so that
@@ -128,6 +129,24 @@ unbounded height with a 10000 unit thickness and its 2D circles with spheres.
 alternative. Declare them through `optionalModules`, since their fallback stubs are written to be
 safe: a player holds only the job the framework itself reports, the reads come back empty and the
 writes are no-ops.
+
+`logging` posts structured embeds to Discord itself, rather than through a framework. A category
+names one destination, and its URL is resolved in order from `SetWebhookUrl`, the matching key under
+`logging.webhooks` in `config.lua`, then `logging.webhooks.default`. A category that resolves to no
+URL is dropped, so a server that configures nothing logs nothing. `logging.username`,
+`logging.avatarUrl` and `logging.footer` decorate every payload when set. This is the only place the
+library logs from — the `framework` module deliberately exposes no logging of its own, so what a
+server sees never depends on which framework it runs.
+
+`phone` on the server reads stored messages straight out of the database, since no phone resource
+exposes an export for it, so the consuming resource must load `@oxmysql/lib/MySQL.lua` before its
+bridge. Its last-resort `sql` provider is a generic adapter for any phone the library does not ship
+a provider for: everything it needs comes out of `phone.database` in `config.lua`, so a new phone is
+a configuration change rather than a code change, and leaving that section out keeps the module on
+its fallback stubs. It supports two conversation layouts — `members`, a join table with one row per
+participant (the shape lb-phone and its relatives use), and `pair`, one conversation row holding
+both numbers in two columns. A phone that stores threads any other way needs a provider file of its
+own.
 
 The `framework` module also emits lifecycle events, so adapters never call into your code directly:
 

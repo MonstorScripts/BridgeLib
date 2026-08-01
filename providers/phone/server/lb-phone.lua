@@ -99,10 +99,7 @@ return function(bridge)
 		end,
 
 		GetConversationMessages = function(conversationId)
-			local messages = MySQL.query.await(
-				"SELECT sender, content, timestamp FROM phone_message_messages WHERE channel_id = ? ORDER BY timestamp ASC",
-				{ conversationId }
-			)
+			local messages = MySQL.query.await("SELECT sender, content, timestamp FROM phone_message_messages WHERE channel_id = ? ORDER BY timestamp ASC", { conversationId })
 
 			return messages or {}
 		end,

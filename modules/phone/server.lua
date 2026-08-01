@@ -1,9 +1,3 @@
----Optional module: with no phone resource running, `FormatNumber` falls back to `tostring`, lookups
----resolve to nothing and no `messageSent` event is ever emitted.
----
----Reading stored messages is unavoidably database work, since no phone resource exposes an export
----for it, so a consuming resource must load `@oxmysql/lib/MySQL.lua` before its bridge.
-
 ---One message as every provider reports it, whatever the phone stores underneath.
 ---@class BridgeLib.Phone.Message
 ---@field sender string

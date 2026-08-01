@@ -1,13 +1,3 @@
----Generic adapter for any phone the library does not ship a provider for. Everything it needs comes
----out of `phone.database` in the config, so a new phone is a configuration change rather than a code
----change. Returning nothing when that section is absent leaves the module on its fallback stubs.
----
----Two conversation layouts are supported:
----  `members`  a join table with one row per participant, the shape lb-phone and its relatives use.
----  `pair`     one conversation row holding both numbers in two columns.
----
----A phone that stores threads any other way needs a provider file of its own.
-
 ---@param number string|number
 ---@return string[]
 local function lookupCandidates(number)
@@ -54,11 +44,17 @@ local function buildMembersQuery(database, candidatesA, candidatesB)
 		WHERE a.%s IN (%s) AND b.%s IN (%s)
 		LIMIT 1
 	]]):format(
-		database.conversationColumn, database.membersTable,
-		database.membersTable, database.conversationColumn, database.conversationColumn,
-		database.numberColumn, database.numberColumn,
-		database.numberColumn, placeholders(candidatesA),
-		database.numberColumn, placeholders(candidatesB)
+		database.conversationColumn,
+		database.membersTable,
+		database.membersTable,
+		database.conversationColumn,
+		database.conversationColumn,
+		database.numberColumn,
+		database.numberColumn,
+		database.numberColumn,
+		placeholders(candidatesA),
+		database.numberColumn,
+		placeholders(candidatesB)
 	)
 
 	return query, params
@@ -80,11 +76,16 @@ local function buildPairQuery(database, candidatesA, candidatesB)
 		WHERE (%s IN (%s) AND %s IN (%s)) OR (%s IN (%s) AND %s IN (%s))
 		LIMIT 1
 	]]):format(
-		database.conversationColumn, database.conversationsTable,
-		database.firstNumberColumn, placeholders(candidatesA),
-		database.secondNumberColumn, placeholders(candidatesB),
-		database.firstNumberColumn, placeholders(candidatesB),
-		database.secondNumberColumn, placeholders(candidatesA)
+		database.conversationColumn,
+		database.conversationsTable,
+		database.firstNumberColumn,
+		placeholders(candidatesA),
+		database.secondNumberColumn,
+		placeholders(candidatesB),
+		database.firstNumberColumn,
+		placeholders(candidatesB),
+		database.secondNumberColumn,
+		placeholders(candidatesA)
 	)
 
 	return query, params
@@ -152,8 +153,11 @@ return function(bridge)
 				SELECT %s AS sender, %s AS content, %s AS timestamp FROM %s
 				WHERE %s = ? ORDER BY %s ASC
 			]]):format(
-				database.senderColumn, database.contentColumn, database.timestampColumn,
-				database.messagesTable, database.messagesConversationColumn or database.conversationColumn,
+				database.senderColumn,
+				database.contentColumn,
+				database.timestampColumn,
+				database.messagesTable,
+				database.messagesConversationColumn or database.conversationColumn,
 				database.timestampColumn
 			)
 
