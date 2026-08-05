@@ -50,16 +50,16 @@ local function noop() end
 ---@type BridgeLib.Logger
 BridgeLib.Logger = {
 	debug = function(message)
-		print(("[bridgelib] %s"):format(message))
+		print(("[BridgeLib] %s"):format(message))
 	end,
 	verbose = noop,
 	fatal = function(message)
-		error(("[bridgelib] %s"):format(message), 0)
+		error(("[BridgeLib] %s"):format(message), 0)
 	end,
 }
 
 ---@type string
-BridgeLib.Root = "bridgelib"
+BridgeLib.Root = "BridgeLib"
 
 ---Descriptors resolved so far, keyed by context then module name.
 ---@type table<string, table<string, BridgeLib.Module>>
@@ -84,7 +84,7 @@ function BridgeLib.SetLogger(logger)
 	BridgeLib.Logger = logger
 end
 
----Sets the require path the library is mounted at, when it is not `bridgelib`.
+---Sets the require path the library is mounted at, when it is not `BridgeLib`.
 ---@param path string
 function BridgeLib.SetRoot(path)
 	BridgeLib.Root = path

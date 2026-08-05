@@ -1,11 +1,11 @@
-# bridgelib
+# BridgeLib
 
 A resource-agnostic bridge layer for FiveM Lua resources.
 
 It ships a **catalog** of adapters — `qb-core`, `es_extended`, `ox_inventory`, `qb-inventory`,
 `ox_target`, `qb-target`, `rcore_fuel`, `LegacyFuel`, `qb-vehiclekeys`, `cd_dispatch`, `lb-phone` —
 grouped into modules (`framework`, `inventory`, `target`, `fuel`, `vehiclekeys`, `dispatch`,
-`phone`). Your resource asks for the modules it needs, bridgelib picks whichever supported resource
+`phone`). Your resource asks for the modules it needs, BridgeLib picks whichever supported resource
 is actually running, and you get one flat table of functions to call. Adding support for a new
 resource means adding one file here, and every consuming resource gets it.
 
@@ -34,7 +34,7 @@ The consumer needs `@ox_lib/init.lua` in its own `shared_scripts` for `require` 
 Add it at the root of your resource:
 
 ```bash
-git submodule add <repo-url> bridgelib
+git submodule add <repo-url> BridgeLib
 ```
 
 Then make sure the files reach the client — in `fxmanifest.lua`:
@@ -42,7 +42,7 @@ Then make sure the files reach the client — in `fxmanifest.lua`:
 ```lua
 shared_scripts({
     "@ox_lib/init.lua",
-    "bridgelib/**.lua",
+    "BridgeLib/**.lua",
     -- your files
 })
 ```
@@ -52,11 +52,11 @@ of shipping the server adapters to clients as well. They contain no secrets — 
 adding adapters, or split the globs per context.
 
 No file in this library `require`s another, so it can be mounted at any path. If you mount it
-somewhere other than `bridgelib/`, tell it where it lives so it can find its own modules:
+somewhere other than `BridgeLib/`, tell it where it lives so it can find its own modules:
 
 ```lua
 local BridgeLib = require("vendor.BridgeLib.init")
-BridgeLib.SetRoot("vendor.bridgelib")
+BridgeLib.SetRoot("vendor.BridgeLib")
 ```
 
 ## Usage
@@ -172,7 +172,7 @@ the consuming resource has to load oxmysql for them to work.
 ## Layout
 
 ```
-bridgelib/
+BridgeLib/
   init.lua                                 core: New, Use, Load, logging, events
   config.lua                               server-only settings, one section per module
   modules/<module>/<context>.lua           schema + provider list + required keys
@@ -227,13 +227,13 @@ An adapter that speaks to no particular resource — one the library implements 
 
 ```lua
 providers = {
-    { adapter = "bridgelib" },
+    { adapter = "BridgeLib" },
 }
 ```
 
 Nothing is checked with `GetResourceState` for these: the adapter ships with the library, so it is
 available wherever the library is. Do not name the library as a resource instead. Its code runs
-inside the *consuming* resource through ox_lib's cross-resource require — bridgelib starts no
+inside the *consuming* resource through ox_lib's cross-resource require — BridgeLib starts no
 scripts of its own — so neither a hardcoded name nor `GetCurrentResourceName()` describes what is
 really running, and on an optional module a mismatch fails silently.
 
@@ -300,7 +300,7 @@ bridge:Use("banking")
 
 - `BridgeLib.SetLogger(logger)` — `{ debug, verbose, fatal }`, each taking a string. `fatal` is
   expected not to return.
-- `BridgeLib.SetRoot(path)` — where the library is mounted. Defaults to `"bridgelib"`.
+- `BridgeLib.SetRoot(path)` — where the library is mounted. Defaults to `"BridgeLib"`.
 - `BridgeLib.RegisterModule(module)` — add or override a module descriptor.
 - `BridgeLib.HasResource(name)` — true when the resource is `started` or `starting`.
 - `BridgeLib.Unimplemented(name)` — a stub that fatals when called.

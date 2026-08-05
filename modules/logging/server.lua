@@ -41,7 +41,7 @@ return {
 	name = "logging",
 	context = "server",
 	providers = {
-		{ adapter = "bridgelib" },
+		{ adapter = "BridgeLib" },
 	},
 	required = {
 		"SetWebhookUrl",
