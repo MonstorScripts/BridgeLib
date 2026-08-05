@@ -98,6 +98,11 @@ local schema = {
 	---@param item string
 	---@return BridgeLib.ItemSlot[]
 	GetItemSlots = function(inv, item) end,
+
+	---Removes every item from an inventory, leaving the inventory itself in place.
+	---@param inv BridgeLib.Inventory.Id
+	---@return boolean
+	ClearInventory = function(inv) end,
 }
 
 ---@type BridgeLib.Module
@@ -123,6 +128,7 @@ return {
 		"RegisterStash",
 		"GetInventoryItems",
 		"GetItemSlots",
+		"ClearInventory",
 	},
 	schema = schema,
 }

@@ -64,6 +64,14 @@ local provider = {
 
 		return slots
 	end,
+
+	ClearInventory = function(inv)
+		local cleared = pcall(function()
+			exports[RESOURCE_INVENTORY]:ClearInventory(inv)
+		end)
+
+		return cleared
+	end,
 }
 
 return provider

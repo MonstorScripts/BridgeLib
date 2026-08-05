@@ -138,6 +138,26 @@ local provider = {
 
 		return slots
 	end,
+
+	ClearInventory = function(inv)
+		local cleared = pcall(function()
+			exports[RESOURCE_INVENTORY]:ClearInventory(inv)
+		end)
+
+		if cleared then
+			return true
+		end
+
+		local inventory = exports[RESOURCE_INVENTORY]:GetInventory(inv)
+
+		for _, slot in pairs(inventory and inventory.items or {}) do
+			if slot and slot.name then
+				exports[RESOURCE_INVENTORY]:RemoveItem(inv, slot.name, slot.amount or 1, slot.slot, "bridgelib-clear")
+			end
+		end
+
+		return true
+	end,
 }
 
 return provider
