@@ -45,14 +45,14 @@ local BridgeLib = {}
 
 BridgeLib._VERSION = "0.5.0"
 
+local function noop() end
+
 ---@type BridgeLib.Logger
 BridgeLib.Logger = {
 	debug = function(message)
 		print(("[BridgeLib] %s"):format(message))
 	end,
-	verbose = function(message)
-		print(("[BridgeLib] %s"):format(message))
-	end,
+	verbose = noop,
 	fatal = function(message)
 		error(("[BridgeLib] %s"):format(message), 0)
 	end,
