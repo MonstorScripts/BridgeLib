@@ -43,6 +43,7 @@ local function normalizeJob(job, jobName)
 		name = jobName,
 		label = job.label or jobName,
 		grades = grades,
+		supportsDuty = job.defaultDuty ~= nil,
 	}
 end
 

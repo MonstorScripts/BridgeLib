@@ -29,6 +29,7 @@ local function normalizeJob(job, jobName)
 		name = job.name or jobName,
 		label = job.label or jobName,
 		grades = grades,
+		supportsDuty = false,
 	}
 end
 

@@ -159,8 +159,9 @@ The `framework` module also emits lifecycle events, so adapters never call into 
 
 Job payloads are normalised before they are emitted, so handlers see the same shape on either
 framework: `{ name, label, grade, gradeName, gradeSalary, onDuty }`. `GetJobs` normalises the job
-catalog the same way, into `{ [name] = { name, label, grades = { [gradeString] = { grade, name,
-label, salary } } } }`.
+catalog the same way, into `{ [name] = { name, label, supportsDuty, grades = { [gradeString] =
+{ grade, name, label, salary } } } }`. `supportsDuty` is true for qb-core jobs carrying
+`defaultDuty` and always false on ESX, which models off duty as a separate `off_` job instead.
 
 `GetPlayer`, `GetPlayerByIdentifier` and `GetPlayers` return a framework-neutral player: `UniqueId`,
 `Source`, `Name`, `JobName`, `JobLabel`, `JobGrade`, `JobGradeName`, `JobGradeSalary`, `JobOnDuty`,

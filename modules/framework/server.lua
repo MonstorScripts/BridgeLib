@@ -16,6 +16,8 @@
 ---@field name string
 ---@field label string
 ---@field grades table<string, BridgeLib.Grade> Keyed by grade level as a string, on either framework.
+---@field supportsDuty boolean Whether the framework tracks a duty state for this job. True on qb-core
+---jobs that carry `defaultDuty`, always false on ESX, which models off duty as a separate `off_` job.
 
 ---A player, reduced to the fields that mean the same thing on every framework.
 ---@class BridgeLib.Player
