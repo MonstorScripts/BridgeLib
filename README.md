@@ -268,6 +268,31 @@ BridgeLib.RegisterModule(require("myresource.bridge.modules.banking"))
 bridge:Use("banking")
 ```
 
+## Update checks
+
+Building a **server** bridge also enlists that resource with the
+[monstor-versions](https://versions.monstorscripts.com) API. The slug is `GetCurrentResourceName()`
+lowercased and the version is the `version` from the resource's own `fxmanifest.lua`, so a resource
+opts in by having a server bridge — there is nothing to call and nothing to keep in sync. A resource
+that declares no `version` is skipped.
+
+Enlisted resources collect in `GlobalState`, which every resource on the server shares. The first
+bridge to claim the job waits out the delay and then asks
+`/v1/scripts/check?scripts=slug@version,slug@version` about all of them at once, so a server running
+fifteen resources still makes **one request**. Each result is handed back over the
+`BridgeLib:versions:result` server event to the resource it belongs to, so every resource prints its
+own line and the console attributes it correctly — up to date, or what it is behind on with a
+warning when one of the missed releases is breaking. Nothing but the slugs and versions leaves the
+server, and a failed request is silent.
+
+The `versions` section of `config.lua` controls it:
+
+| key      | default                                | description                                     |
+| -------- | -------------------------------------- | ----------------------------------------------- |
+| `enabled`| `true`                                 | Set to `false` to never contact the API.        |
+| `apiUrl` | `https://versions.monstorscripts.com`  | Point at your own deployment.                   |
+| `delay`  | `5000`                                 | Milliseconds to wait after startup, which is also the window resources have to enlist. |
+
 ## API
 
 ### `BridgeLib.New(options) -> Bridge`

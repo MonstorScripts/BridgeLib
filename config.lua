@@ -12,6 +12,21 @@
 ---here. Listing it in `files()` would hand every secret in it to every player who connects.
 
 return {
+	---Startup update check. Every server bridge enlists the resource that built it, using the resource
+	---name lowercased as the slug and the `version` from its `fxmanifest.lua`. One resource then asks
+	---the API about all of them in a single request. Nothing about the server is sent, only the slugs
+	---and versions.
+	versions = {
+		enabled = true,
+
+		---Point this at your own deployment of monstor-versions to check against that instead.
+		apiUrl = "https://versions.monstorscripts.com",
+
+		---Milliseconds to wait after startup, both to keep the check out of the boot log and to give
+		---every resource time to enlist before the one request goes out.
+		delay = 5000,
+	},
+
 	---Discord logging. Consuming resources pick the category name they log under; the ones the
 	---monstor scripts use are listed below. `default` catches every category without its own URL,
 	---and a category that resolves to no URL at all is dropped rather than erroring.

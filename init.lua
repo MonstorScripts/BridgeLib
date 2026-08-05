@@ -45,14 +45,14 @@ local BridgeLib = {}
 
 BridgeLib._VERSION = "0.5.0"
 
-local function noop() end
-
 ---@type BridgeLib.Logger
 BridgeLib.Logger = {
 	debug = function(message)
 		print(("[BridgeLib] %s"):format(message))
 	end,
-	verbose = noop,
+	verbose = function(message)
+		print(("[BridgeLib] %s"):format(message))
+	end,
 	fatal = function(message)
 		error(("[BridgeLib] %s"):format(message), 0)
 	end,
@@ -463,6 +463,9 @@ function Bridge:Verify()
 end
 
 ---Creates a bridge for one context. `options.schema`, when given, becomes `bridge.exports`.
+---
+---A server bridge also registers its own resource with `versions.lua`, which checks the resource's
+---manifest version against the monstor-versions API shortly after startup.
 ---@param options BridgeLib.Options
 ---@return BridgeLib.Bridge
 function BridgeLib.New(options)
@@ -491,6 +494,13 @@ function BridgeLib.New(options)
 
 	for _, name in ipairs(options.optionalModules or {}) do
 		bridge:Declare(name, true)
+	end
+
+	if bridge.context == "server" then
+		local success, versions = pcall(bridge.require, ("%s.versions"):format(BridgeLib.Root))
+		if success and type(versions) == "table" then
+			pcall(versions.Register, bridge)
+		end
 	end
 
 	return bridge

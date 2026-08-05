@@ -8,6 +8,7 @@ version("0.5.0")
 
 files({
 	"init.lua",
+	"versions.lua",
 	"modules/**/*.lua",
 	"providers/**/*.lua",
 })
