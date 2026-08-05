@@ -55,14 +55,14 @@ No file in this library `require`s another, so it can be mounted at any path. If
 somewhere other than `bridgelib/`, tell it where it lives so it can find its own modules:
 
 ```lua
-local BridgeLib = require("vendor.bridgelib.init")
+local BridgeLib = require("vendor.BridgeLib.init")
 BridgeLib.SetRoot("vendor.bridgelib")
 ```
 
 ## Usage
 
 ```lua
-local BridgeLib = require("bridgelib.init")
+local BridgeLib = require("BridgeLib.init")
 
 BridgeLib.SetLogger({
     debug = function(message) print(message) end,
