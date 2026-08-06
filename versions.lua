@@ -8,6 +8,9 @@
 ---One bridge claims the job, waits out the startup delay, gathers every enlisted resource and checks
 ---them in one request, so a server running fifteen resources still makes a single call. Each result
 ---is then handed back over a server event to the resource it belongs to, which prints its own line.
+---
+---A resource started after that request has gone out is a live restart rather than part of the boot,
+---so it checks itself on its own instead of waiting for a batch that has already been and gone.
 
 ---@class BridgeLib.Versions.Change
 ---@field version string
@@ -43,6 +46,10 @@ Versions.StateKey = "bridgeLibVersions"
 
 ---GlobalState key naming the resource that will make the request.
 Versions.LeaderKey = "bridgeLibVersionsLeader"
+
+---GlobalState key marking that the startup request has gone out, so every resource enlisting from
+---then on is restarting into a running server rather than booting with one.
+Versions.CheckedKey = "bridgeLibVersionsChecked"
 
 ---Server event the checking resource hands each result back on, so every resource prints its own
 ---line from its own runtime and the console attributes it to the right script. Deliberately not a
@@ -109,12 +116,12 @@ function Versions.Enlisted()
 	return entries
 end
 
----Checks every enlisted resource in one request and hands each result to the resource it belongs to.
+---Checks the given `slug@version` entries in one request and hands each result to the resource it
+---belongs to.
 ---@param bridge BridgeLib.Bridge
 ---@param settings BridgeLib.Versions.Settings
-function Versions.Check(bridge, settings)
-	local entries = Versions.Enlisted()
-
+---@param entries string[]
+function Versions.Check(bridge, settings, entries)
 	if #entries == 0 then
 		return
 	end
@@ -151,16 +158,43 @@ function Versions.Listen(slug)
 	end)
 end
 
+---@param resourceName string?
+---@return boolean
+function Versions.IsRunning(resourceName)
+	if not resourceName then
+		return false
+	end
+
+	local state = GetResourceState(resourceName)
+	return state == "started" or state == "starting"
+end
+
+---Checks this resource alone, for a restart into a server whose startup request has already gone
+---out. One resource restarting is one entry, so there is nothing to batch it with.
+---@param bridge BridgeLib.Bridge
+---@param settings BridgeLib.Versions.Settings
+---@param slug string
+---@param version string
+function Versions.CheckAlone(bridge, settings, slug, version)
+	CreateThread(function()
+		Wait(settings.delay or Versions.Delay)
+
+		Versions.Check(bridge, settings, { ("%s@%s"):format(slug, version) })
+	end)
+end
+
 ---Claims the bulk check for this resource. Resources loading in the same tick all read an unset key
 ---and all claim it, so the claim is re-tested after the delay, once the writes have landed and one
 ---name has won. Only that resource makes the request.
+---
+---A leader that is no longer running never will, so its claim is taken over rather than waited on.
 ---@param bridge BridgeLib.Bridge
 ---@param settings BridgeLib.Versions.Settings
 function Versions.Elect(bridge, settings)
 	local resourceName = GetCurrentResourceName()
 	local leader = GlobalState[Versions.LeaderKey]
 
-	if leader and leader ~= resourceName then
+	if leader and leader ~= resourceName and Versions.IsRunning(leader) then
 		return
 	end
 
@@ -173,7 +207,9 @@ function Versions.Elect(bridge, settings)
 			return
 		end
 
-		Versions.Check(bridge, settings)
+		GlobalState[Versions.CheckedKey] = true
+
+		Versions.Check(bridge, settings, Versions.Enlisted())
 	end)
 end
 
@@ -203,6 +239,12 @@ function Versions.Register(bridge)
 
 	Versions.Listen(slug)
 	Versions.Enlist(slug, currentVersion)
+
+	if GlobalState[Versions.CheckedKey] then
+		Versions.CheckAlone(bridge, settings, slug, currentVersion)
+		return
+	end
+
 	Versions.Elect(bridge, settings)
 end
 
