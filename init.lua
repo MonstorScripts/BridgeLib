@@ -464,6 +464,9 @@ end
 
 ---Creates a bridge for one context. `options.schema`, when given, becomes `bridge.exports`.
 ---
+---Every bridge registers its own resource with `locales.lua`, which loads the resource's shipped
+---strings and installs `Locale` on the bridge.
+---
 ---A server bridge also registers its own resource with `versions.lua`, which checks the resource's
 ---manifest version against the monstor-versions API shortly after startup.
 ---@param options BridgeLib.Options
@@ -494,6 +497,11 @@ function BridgeLib.New(options)
 
 	for _, name in ipairs(options.optionalModules or {}) do
 		bridge:Declare(name, true)
+	end
+
+	local localesLoaded, locales = pcall(bridge.require, ("%s.locales"):format(BridgeLib.Root))
+	if localesLoaded and type(locales) == "table" then
+		pcall(locales.Register, bridge)
 	end
 
 	if bridge.context == "server" then

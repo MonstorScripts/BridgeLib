@@ -27,6 +27,24 @@ return {
 		delay = 5000,
 	},
 
+	---Translations. Every resource ships `locales/en.json`, so leaving `language` alone needs no
+	---configuration and makes no requests. Setting it to anything else pulls that language from the
+	---API once per start, caches it in the resource as `locales/<language>.json` and merges it over
+	---the English one, so a key that has not been translated yet still reads in English.
+	locales = {
+		enabled = true,
+
+		---Language code as the API stores it: `fr`, `de`, `pt-BR`.
+		language = "en",
+
+		---Point this at your own deployment of monstor-versions to pull translations from that instead.
+		apiUrl = "https://versions.monstorscripts.com",
+
+		---Milliseconds to wait after startup before fetching. The cached file is already loaded by
+		---then, so this only delays picking up strings that changed since the last start.
+		delay = 5000,
+	},
+
 	---Framework. Every table outside the framework's own that holds a character identifier, so
 	---`DeleteCharacter` can wipe a character out of all of them.
 	---

@@ -317,6 +317,47 @@ The `versions` section of `config.lua` controls it:
 | `apiUrl` | `https://versions.monstorscripts.com`  | Point at your own deployment.                   |
 | `delay`  | `5000`                                 | Milliseconds to wait after startup, which is also the window resources have to enlist. |
 
+## Translations
+
+Building **any** bridge also sets that resource up for translation and installs `Locale` on it:
+
+```lua
+Bridge.Notify(playerId, Bridge.Locale('shop.tooFar'), 'error')
+Bridge.Notify(playerId, Bridge.Locale('shop.purchased', { amount = 2, item = 'Water', price = 40 }))
+```
+
+Keys are dot paths into the resource's own `locales/en.json`, and substitutions replace `%{name}`
+placeholders. A key nothing translates renders as the key itself, so a missing string shows up
+rather than notifying an empty message.
+
+`locales/en.json` ships with the resource and is the source of truth - a server with no internet, no
+cache and no configured language still reads correctly. Any other language is an overlay pulled from
+[monstor-versions](https://versions.monstorscripts.com) at
+`/v1/scripts/<slug>/locales/<language>?shape=nested`, written to `locales/<language>.json` in the
+resource and merged over English at load, so a key that language has not translated yet still reads
+in English. Files are i18next shaped, which is both what the API serves and what `ox_lib` reads, so
+a cache file is a normal locale file that can also be edited by hand.
+
+The **server** owns the fetch. A file written at runtime is not in the resource's manifest for that
+session, so clients cannot download it until the next restart; instead the server hands its merged
+strings to each client that asks over `BridgeLib:locales:request` / `BridgeLib:locales:deliver`, and
+pushes them again when a fetch changes something. Clients render English until that lands, which is
+the same second their bridge comes up. A server left on English never writes the `GlobalState` key
+naming the language and its clients never ask for an overlay at all.
+
+The `locales` section of `config.lua` controls it:
+
+| key       | default                               | description                                             |
+| --------- | ------------------------------------- | ------------------------------------------------------- |
+| `enabled` | `true`                                | Set to `false` to use only the shipped and cached files. |
+| `language`| `"en"`                                | Language code as the API stores it: `fr`, `de`, `pt-BR`. |
+| `apiUrl`  | `https://versions.monstorscripts.com` | Point at your own deployment.                            |
+| `delay`   | `5000`                                | Milliseconds to wait after startup before fetching.      |
+
+A resource opts in by shipping `locales/en.json` and listing `locales/*.json` in its manifest's
+`files`. One that ships nothing still gets `Bridge.Locale`, which then returns whatever key it was
+given, and makes no requests.
+
 ## API
 
 ### `BridgeLib.New(options) -> Bridge`
