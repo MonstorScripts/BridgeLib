@@ -330,30 +330,65 @@ Keys are dot paths into the resource's own `locales/en.json`, and substitutions 
 placeholders. A key nothing translates renders as the key itself, so a missing string shows up
 rather than notifying an empty message.
 
-`locales/en.json` ships with the resource and is the source of truth - a server with no internet, no
-cache and no configured language still reads correctly. Any other language is an overlay pulled from
+`locales/en.json` ships with the resource, so a server with no internet and nothing downloaded still
+reads correctly. Whatever language is configured is then pulled from
 [monstor-versions](https://versions.monstorscripts.com) at
-`/v1/scripts/<slug>/locales/<language>?shape=nested`, written to `locales/<language>.json` in the
-resource and merged over English at load, so a key that language has not translated yet still reads
-in English. Files are i18next shaped, which is both what the API serves and what `ox_lib` reads, so
-a cache file is a normal locale file that can also be edited by hand.
+`/v1/scripts/<slug>/locales/<language>?shape=nested` on every start and written to
+`locales/<language>.json` in the resource - **English included**, so a wording fix on the API reaches
+a server without a resource update. The write is a full replace of that one file, never a merge, so a
+key the API has dropped stops being cached rather than lingering.
+
+English is the one language whose download lands in the file the resource shipped. Any other language
+is an overlay merged over English, leaving a key it has not translated yet reading in English. Files
+are i18next shaped, which is both what the API serves and what `ox_lib` reads, so every one of them is
+a normal locale file that can also be edited by hand.
+
+On top of both sits `locales/<language>.local.json`, the server owner's own file. The API never
+writes it and a download never replaces it, so any key put in it wins over the shipped and downloaded
+strings for that language and stays won across updates. A key left out of it changes nothing, so
+rewording one notification is a two-key file rather than a fork of the whole locale:
+
+```json
+{ "shop": { "tooFar": "Step closer to the counter." } }
+```
+
+An English server uses `locales/en.local.json`; a French one uses `locales/fr.local.json`. The file
+is picked up by the same `locales/*.json` manifest glob, so it needs a resource restart to take
+effect, not just a file save.
 
 The **server** owns the fetch. A file written at runtime is not in the resource's manifest for that
 session, so clients cannot download it until the next restart; instead the server hands its merged
 strings to each client that asks over `BridgeLib:locales:request` / `BridgeLib:locales:deliver`, and
-pushes them again when a fetch changes something. Clients render English until that lands, which is
-the same second their bridge comes up. A server left on English never writes the `GlobalState` key
-naming the language and its clients never ask for an overlay at all.
+pushes them again when a fetch changes something. Clients render what they have on file until that
+lands, which is the same second their bridge comes up. Every client asks, English servers included,
+since an English server can also be rendering strings the API changed after the client's files were
+built.
 
-A resource on a non-English language prints what it did, so a server can see the download working:
+Every resource prints what it did, so a server can see the download working:
 
 ```
-[monstor-shop] fr: using 12 cached strings, checking the API for changes
+[monstor-shop] fr: 2 strings replaced from locales/fr.local.json
+  2 of them replace a shipped string.
+    shop.tooFar = Approchez-vous du comptoir.
+    shop.purchased = Vous avez acheté %{amount}x %{item}.
+[monstor-shop] fr: using 12 strings from file, checking the API for changes
 [monstor-shop] fr: downloaded 12 strings, 12 of 12 keys translated, cached in locales/fr.json
+  3 strings now read differently than they did before the download.
+    shop.closed = Le magasin est fermé.
+    shop.noRoom = Vous n'avez pas assez de place.
+    shop.sold = Vendu pour $%{price}.
+  2 downloaded strings stay replaced by locales/fr.local.json.
+    shop.tooFar = Approchez-vous du comptoir.
+    shop.purchased = Vous avez acheté %{amount}x %{item}.
 ```
 
-Unlike the update check this reports its failures too - a server that asked for a language wants to
-know when it did not arrive, and silence would look the same as quietly running in English.
+Every counted line then prints its keys with the string each one ends up rendering, so a string that
+reads wrong can be traced to the layer that set it straight from the console. A key in the override
+file that no shipped file has is called out separately - nothing asks for it, so it is nearly always
+a typo in the key path.
+
+Unlike the update check this reports its failures too - a server wants to know when a language did
+not arrive, and silence would look the same as quietly running on the shipped strings.
 
 The `locales` section of `config.lua` controls it:
 

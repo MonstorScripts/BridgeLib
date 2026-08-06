@@ -27,10 +27,14 @@ return {
 		delay = 5000,
 	},
 
-	---Translations. Every resource ships `locales/en.json`, so leaving `language` alone needs no
-	---configuration and makes no requests. Setting it to anything else pulls that language from the
-	---API once per start, caches it in the resource as `locales/<language>.json` and merges it over
-	---the English one, so a key that has not been translated yet still reads in English.
+	---Translations. Every resource ships `locales/en.json`, so a server with no internet still reads
+	---correctly. Whatever `language` is set to is pulled from the API once per start and written to
+	---`locales/<language>.json` in the resource, English included, so wording fixes arrive without a
+	---resource update. A language other than English is merged over the English one, leaving a key it
+	---has not translated yet reading in English.
+	---
+	---Any key you put in `locales/<language>.local.json` wins over both and is never overwritten by a
+	---download, which is the place to reword a string for your server.
 	locales = {
 		enabled = true,
 
