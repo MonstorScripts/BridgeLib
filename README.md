@@ -3,7 +3,8 @@
 A resource-agnostic bridge layer for FiveM Lua resources.
 
 It ships a **catalog** of adapters — `qb-core`, `es_extended`, `ox_inventory`, `qb-inventory`,
-`ox_target`, `qb-target`, `rcore_fuel`, `LegacyFuel`, `qb-vehiclekeys`, `cd_dispatch`, `lb-phone` —
+`ox_target`, `qb-target`, `rcore_fuel`, `LegacyFuel`, `qb-vehiclekeys`, `cd_dispatch`, `lb-phone`,
+`npwd` —
 grouped into modules (`framework`, `inventory`, `target`, `fuel`, `vehiclekeys`, `dispatch`,
 `phone`). Your resource asks for the modules it needs, BridgeLib picks whichever supported resource
 is actually running, and you get one flat table of functions to call. Adding support for a new
@@ -116,7 +117,7 @@ optional module must tolerate a no-op.
 | `fuel`        | client                   | `rcore_fuel`, `LegacyFuel`       |
 | `vehiclekeys` | client                   | `qb-vehiclekeys`, `wasabi_carlock` |
 | `dispatch`    | client                   | `cd_dispatch`                    |
-| `phone`       | client / server          | `lb-phone`, `sql`                |
+| `phone`       | client / server          | `lb-phone`, `npwd`, `sql`        |
 | `logging`     | server                   | `BridgeLib`                      |
 
 `zones` prefers `ox_lib`, which every consumer already runs, so the `PolyZone` adapter is only
@@ -147,6 +148,13 @@ its fallback stubs. It supports two conversation layouts — `members`, a join t
 participant (the shape lb-phone and its relatives use), and `pair`, one conversation row holding
 both numbers in two columns. A phone that stores threads any other way needs a provider file of its
 own.
+
+The `npwd` provider reads npwd's own `npwd_messages_participants`, `npwd_messages_conversations` and
+`npwd_messages` tables, and calls are placed with npwd's `startPhoneCall` export. Neither phone
+formats a number outside its own interface, so `FormatNumber` there is `tostring`. npwd exposes no
+server side hook for a sent message, so `messageSent` rides the net event its interface sends on:
+that payload originates on a client, so the provider only reports it once it checks out as a one to
+one thread the claimed sender is part of, and nothing that reads stored history goes through it.
 
 The `framework` module also emits lifecycle events, so adapters never call into your code directly:
 

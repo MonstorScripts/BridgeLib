@@ -42,6 +42,7 @@ return {
 	context = "server",
 	providers = {
 		"lb-phone",
+		"npwd",
 		---Last resort: the library ships this adapter, so this entry always matches, and it
 		---resolves to nothing unless `phone.database` in the config describes a phone's tables.
 		{ adapter = "sql" },

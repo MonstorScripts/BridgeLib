@@ -19,6 +19,7 @@ return {
 	context = "client",
 	providers = {
 		"lb-phone",
+		"npwd",
 	},
 	schema = schema,
 }

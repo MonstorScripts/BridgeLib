@@ -49,7 +49,8 @@ return {
 		footer = "",
 	},
 
-	---Phone. A server running lb-phone needs nothing here; its provider is picked up automatically.
+	---Phone. A server running lb-phone or npwd needs nothing here; their providers are picked up
+	---automatically.
 	---
 	---Any other phone is described below instead of being coded against, so long as it stores threads
 	---in one of the two supported layouts. Leaving `database` unset means the phone module falls back
