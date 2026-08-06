@@ -36,6 +36,299 @@
 ---@field AddAccountMoney fun(account: string, amount: number, reason: string?)
 ---@field RemoveAccountMoney fun(account: string, amount: number, reason: string?)
 
+---What a character wipe touched.
+---@class BridgeLib.CharacterWipe
+---@field columnsVisited number Table columns the wipe walked.
+---@field rowsUpdated number Rows rewritten because the identifier sat inside a JSON blob.
+---@field rowsDeleted number Rows removed because the column was the identifier outright.
+
+---A map of table name to the column, or columns, holding a character identifier.
+---@alias BridgeLib.CharacterTables table<string, string|string[]>
+
+---Where a framework keeps the character row itself, which is what existence is tested against.
+---@class BridgeLib.CharacterIdentity
+---@field table string
+---@field column string
+
+local SAFE_NAME_PATTERN = "^[%w_]+$"
+
+---Table and column names are interpolated into the statement rather than bound, so anything that is
+---not a bare identifier is refused instead of reaching the database.
+---@param name any
+---@return boolean
+local function isSafeName(name)
+	return type(name) == "string" and name:match(SAFE_NAME_PATTERN) ~= nil
+end
+
+---@param bridge BridgeLib.Bridge
+---@param query string
+---@param parameters table
+---@return table? result nil when the query raised.
+local function safeQuery(bridge, query, parameters)
+	local success, result = pcall(function()
+		return MySQL.query.await(query, parameters)
+	end)
+
+	if not success then
+		bridge:Debug(("Character wipe query failed: %s (%s)"):format(query, tostring(result)))
+		return nil
+	end
+
+	return result
+end
+
+---@param result table?
+---@return number
+local function affectedRows(result)
+	return type(result) == "table" and tonumber(result.affectedRows) or 0
+end
+
+---@param value any
+---@return table? decoded nil unless the value is a JSON object or array.
+local function decodeJson(value)
+	if type(value) ~= "string" then
+		return nil
+	end
+
+	local success, decoded = pcall(json.decode, value)
+	if not success or type(decoded) ~= "table" then
+		return nil
+	end
+
+	return decoded
+end
+
+---Rebuilds a decoded JSON value without the identifier, dropping it whether it appears as a key or
+---as a value. Arrays are rebuilt in order rather than holed, so they re-encode as arrays.
+---@param value any
+---@param identifier string
+---@return any scrubbed, boolean changed
+local function scrubJson(value, identifier)
+	if type(value) ~= "table" then
+		return value, false
+	end
+
+	local changed = false
+
+	if value[1] ~= nil then
+		local scrubbedArray = {}
+
+		for _, entry in ipairs(value) do
+			if entry == identifier then
+				changed = true
+			else
+				local scrubbedEntry, entryChanged = scrubJson(entry, identifier)
+				changed = changed or entryChanged
+				scrubbedArray[#scrubbedArray + 1] = scrubbedEntry
+			end
+		end
+
+		return scrubbedArray, changed
+	end
+
+	local scrubbedObject = {}
+
+	for key, entry in pairs(value) do
+		if key == identifier or entry == identifier then
+			changed = true
+		else
+			local scrubbedEntry, entryChanged = scrubJson(entry, identifier)
+			changed = changed or entryChanged
+			scrubbedObject[key] = scrubbedEntry
+		end
+	end
+
+	return scrubbedObject, changed
+end
+
+---@param bridge BridgeLib.Bridge
+---@param tableName string
+---@param column string
+---@param identifier string
+---@param wipe BridgeLib.CharacterWipe
+local function wipeColumn(bridge, tableName, column, identifier, wipe)
+	if not isSafeName(tableName) or not isSafeName(column) then
+		bridge:Debug(("Skipping unsafe character table name '%s'.'%s'"):format(tostring(tableName), tostring(column)))
+		return
+	end
+
+	wipe.columnsVisited = wipe.columnsVisited + 1
+
+	local rows = safeQuery(
+		bridge,
+		("SELECT `%s` FROM `%s` WHERE `%s` LIKE ?"):format(column, tableName, column),
+		{ "%" .. identifier .. "%" }
+	)
+
+	if not rows or #rows == 0 then
+		return
+	end
+
+	local hasExactMatch = false
+
+	for _, row in ipairs(rows) do
+		local value = row[column]
+		local decoded = decodeJson(value)
+
+		if decoded then
+			local scrubbed, changed = scrubJson(decoded, identifier)
+
+			if changed then
+				wipe.rowsUpdated = wipe.rowsUpdated + affectedRows(safeQuery(
+					bridge,
+					("UPDATE `%s` SET `%s` = ? WHERE `%s` = ?"):format(tableName, column, column),
+					{ json.encode(scrubbed), value }
+				))
+			end
+		elseif value == identifier then
+			hasExactMatch = true
+		end
+	end
+
+	if hasExactMatch then
+		wipe.rowsDeleted = wipe.rowsDeleted + affectedRows(safeQuery(
+			bridge,
+			("DELETE FROM `%s` WHERE `%s` = ?"):format(tableName, column),
+			{ identifier }
+		))
+	end
+end
+
+---@param ... BridgeLib.CharacterTables?
+---@return BridgeLib.CharacterTables
+local function mergeCharacterTables(...)
+	local merged = {}
+
+	for _, tables in ipairs({ ... }) do
+		for tableName, columns in pairs(tables) do
+			merged[tableName] = columns
+		end
+	end
+
+	return merged
+end
+
+local DEFAULT_KICK_REASON = "This character has been deleted."
+local DROP_TIMEOUT = 10000
+local DROP_POLL_INTERVAL = 100
+local DROP_SETTLE_TIME = 500
+
+---Drops a character's player before their rows are touched, and waits for the framework to finish
+---with them. The wait is the point: both frameworks save a player on drop, so wiping first would
+---see those rows written straight back.
+---@param bridge BridgeLib.Bridge
+---@param identifier string
+---@param reason string
+---@return boolean gone false when the player was still loaded after `DROP_TIMEOUT`.
+local function dropCharacterPlayer(bridge, identifier, reason)
+	local player = bridge.exports.GetPlayerByIdentifier(identifier)
+	if not player then
+		return true
+	end
+
+	bridge:Debug(("Dropping player %d before wiping character '%s'"):format(player.Source, identifier))
+	DropPlayer(player.Source, reason)
+
+	local waited = 0
+
+	while waited < DROP_TIMEOUT do
+		Wait(DROP_POLL_INTERVAL)
+		waited = waited + DROP_POLL_INTERVAL
+
+		if not bridge.exports.GetPlayerByIdentifier(identifier) then
+			Wait(DROP_SETTLE_TIME)
+			return true
+		end
+	end
+
+	return false
+end
+
+---Wipes every trace of one character out of the database, framework agnostically.
+---
+---Providers call this with the character table their framework keeps and the other tables it owns;
+---everything else comes from
+---`framework.characterTables` in the library's configuration, so a server describes its third party
+---tables once rather than each resource knowing about them.
+---
+---A column is handled one of two ways. When it holds JSON, the identifier is stripped out of the
+---blob wherever it appears, as a key or a value, and the row is rewritten. When the column is the
+---identifier outright, the row is deleted. Anything that merely contains the identifier as a
+---substring is left alone.
+---
+---A character whose player is connected is dropped first, and the wipe waits for the framework to
+---finish saving them before touching a row. A player who somehow will not drop aborts the wipe
+---rather than having their save race it.
+---
+---Needs oxmysql loaded by the consuming resource, since it reaches past the framework into its
+---tables. A table or column that does not exist is logged and skipped rather than aborting the wipe.
+---@param bridge BridgeLib.Bridge
+---@param identity BridgeLib.CharacterIdentity Where the framework keeps the character itself.
+---@param frameworkTables BridgeLib.CharacterTables The rest of the framework's own tables.
+---@param identifier string
+---@param kickReason string? Shown to the player when they are connected.
+---@return boolean wiped, BridgeLib.CharacterWipe wipe
+local function deleteCharacter(bridge, identity, frameworkTables, identifier, kickReason)
+	---@type BridgeLib.CharacterWipe
+	local wipe = { columnsVisited = 0, rowsUpdated = 0, rowsDeleted = 0 }
+
+	if not MySQL then
+		bridge:Fatal("DeleteCharacter needs oxmysql loaded by the consuming resource")
+		return false, wipe
+	end
+
+	if type(identifier) ~= "string" or identifier == "" then
+		bridge:Debug("DeleteCharacter was given no identifier")
+		return false, wipe
+	end
+
+	if not isSafeName(identity.table) or not isSafeName(identity.column) then
+		bridge:Fatal("DeleteCharacter was given an unusable character table")
+		return false, wipe
+	end
+
+	local existing = safeQuery(
+		bridge,
+		("SELECT 1 FROM `%s` WHERE `%s` = ? LIMIT 1"):format(identity.table, identity.column),
+		{ identifier }
+	)
+
+	if not existing or #existing == 0 then
+		bridge:Debug(("No character found for identifier '%s'"):format(identifier))
+		return false, wipe
+	end
+
+	if not dropCharacterPlayer(bridge, identifier, kickReason or DEFAULT_KICK_REASON) then
+		bridge:Debug(("Character '%s' is still loaded after being dropped, wipe abandoned"):format(identifier))
+		return false, wipe
+	end
+
+	local tables = mergeCharacterTables(
+		{ [identity.table] = identity.column },
+		frameworkTables or {},
+		bridge:GetModuleConfig("framework").characterTables or {}
+	)
+
+	for tableName, columns in pairs(tables) do
+		if type(columns) == "table" then
+			for _, column in ipairs(columns) do
+				wipeColumn(bridge, tableName, column, identifier, wipe)
+			end
+		else
+			wipeColumn(bridge, tableName, columns, identifier, wipe)
+		end
+	end
+
+	bridge:Debug(("Wiped character '%s' across %d columns: %d rows deleted, %d rewritten"):format(
+		identifier,
+		wipe.columnsVisited,
+		wipe.rowsDeleted,
+		wipe.rowsUpdated
+	))
+
+	return true, wipe
+end
+
 ---@class BridgeLib.Framework.Server
 local schema = {
 	---Registers the framework's player lifecycle events and forwards them to `bridge:Emit`.
@@ -91,6 +384,18 @@ local schema = {
 	---@param grade number
 	---@return boolean written
 	SetOfflinePlayerJob = function(identifier, jobName, grade) end,
+
+	---Wipes a character out of the database: the framework's own tables plus every table named in
+	---`framework.characterTables`. JSON columns have the identifier stripped out and are rewritten,
+	---columns that are the identifier outright have their row deleted.
+	---
+	---There is no undo. A connected player is dropped first and the wipe waits for the framework to
+	---save them, so their session cannot write the rows back afterwards.
+	---@param identifier string
+	---@param kickReason string? Shown to the player when they are connected.
+	---@return boolean wiped false when the identifier is not on record, or the player would not drop.
+	---@return BridgeLib.CharacterWipe wipe What the wipe touched.
+	DeleteCharacter = function(identifier, kickReason) end,
 }
 
 ---@type BridgeLib.Module
@@ -119,6 +424,14 @@ return {
 		"RefreshJobs",
 		"GetOfflinePlayerName",
 		"SetOfflinePlayerJob",
+		"DeleteCharacter",
 	},
 	schema = schema,
+
+	---The framework agnostic half of `DeleteCharacter`, reached by a provider through
+	---`bridge:GetModule("framework").characterData`. A provider supplies only the tables its own
+	---framework owns and lets this walk the rest.
+	characterData = {
+		DeleteCharacter = deleteCharacter,
+	},
 }

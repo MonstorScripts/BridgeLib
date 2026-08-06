@@ -175,8 +175,20 @@ catalog the same way, into `{ [name] = { name, label, supportsDuty, grades = { [
 `Source`, `Name`, `JobName`, `JobLabel`, `JobGrade`, `JobGradeName`, `JobGradeSalary`, `JobOnDuty`,
 plus `SetOnDuty`, `SetJob`, `GetAccountMoney`, `AddAccountMoney` and `RemoveAccountMoney`.
 
-`GetOfflinePlayerName` and `SetOfflinePlayerJob` reach past the framework into its player table, so
-the consuming resource has to load oxmysql for them to work.
+`GetOfflinePlayerName`, `SetOfflinePlayerJob` and `DeleteCharacter` reach past the framework into its
+player table, so the consuming resource has to load oxmysql for them to work.
+
+`DeleteCharacter(identifier, kickReason?)` wipes a character out of the database and returns
+`wiped, wipe`, where `wipe` counts `columnsVisited`, `rowsUpdated` and `rowsDeleted`. A JSON column
+has the identifier stripped out of the blob and the row rewritten; a column that is the identifier
+outright has its row deleted. The framework's own tables are built into its adapter, everything else
+comes from `framework.characterTables` in `config.lua`.
+
+A connected player is dropped before any row is touched, and the wipe waits for the framework to
+save them before starting - both frameworks write a player out on drop, so the other order would
+watch the rows come straight back. A player still loaded ten seconds later abandons the wipe rather
+than racing their save, so the call can block for that long. It is destructive, immediate, and
+deliberately not bound to a command - wire it to whatever admin path you already restrict.
 
 ## Layout
 
@@ -292,6 +304,10 @@ fifteen resources still makes **one request**. Each result is handed back over t
 own line and the console attributes it correctly — up to date, or what it is behind on with a
 warning when one of the missed releases is breaking. Nothing but the slugs and versions leaves the
 server, and a failed request is silent.
+
+A `restart <resource>` on a running server is not part of that boot, so the resource checks itself
+alone rather than waiting for a batch that has already gone out — one restart is one entry, and it
+prints the same line it would have at startup.
 
 The `versions` section of `config.lua` controls it:
 

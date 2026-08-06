@@ -8,6 +8,21 @@ local ACCOUNTS = {
 	crypto = "crypto",
 }
 
+---@type BridgeLib.CharacterIdentity
+local CHARACTER_IDENTITY = {
+	table = "players",
+	column = "citizenid",
+}
+
+---@type BridgeLib.CharacterTables
+local CHARACTER_TABLES = {
+	player_vehicles = "citizenid",
+	player_outfits = "citizenid",
+	playerskins = "citizenid",
+	player_mails = "citizenid",
+	bank_accounts = "citizenid",
+}
+
 local GetCoreObject = function()
 	return exports[RESOURCE_CORE]:GetCoreObject()
 end
@@ -248,6 +263,11 @@ return function(bridge)
 
 			local affectedRows = MySQL.update.await("UPDATE `players` SET `job` = ? WHERE `citizenid` = ?", { json.encode(job), identifier })
 			return (affectedRows or 0) > 0
+		end,
+
+		DeleteCharacter = function(identifier, kickReason)
+			local characterData = bridge:GetModule("framework").characterData
+			return characterData.DeleteCharacter(bridge, CHARACTER_IDENTITY, CHARACTER_TABLES, identifier, kickReason)
 		end,
 	}
 end

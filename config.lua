@@ -27,6 +27,25 @@ return {
 		delay = 5000,
 	},
 
+	---Framework. Every table outside the framework's own that holds a character identifier, so
+	---`DeleteCharacter` can wipe a character out of all of them.
+	---
+	---The framework's own tables are already covered by its provider - `users`, `owned_vehicles` and
+	---friends on ESX, `players` and `player_vehicles` on qb-core. What goes here is everything else:
+	---the third party resources a particular server happens to run.
+	---
+	---A value is either one column name or a list of them. Names are interpolated into the statement,
+	---so anything that is not a bare identifier is refused. A table that does not exist is logged and
+	---skipped, which makes an over-long list harmless.
+	framework = {
+		characterTables = {
+			-- ["okokbanking_accounts"] = "account_holder",
+			-- ["okokbanking_transactions"] = { "receiver_identifier", "sender_identifier" },
+			-- ["mdt_cases"] = { "citizens", "officers", "author", "edited_by" },
+			-- ["properties_owners"] = "identifier",
+		},
+	},
+
 	---Discord logging. Consuming resources pick the category name they log under; the ones the
 	---monstor scripts use are listed below. `default` catches every category without its own URL,
 	---and a category that resolves to no URL at all is dropped rather than erroring.

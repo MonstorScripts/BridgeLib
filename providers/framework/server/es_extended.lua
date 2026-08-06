@@ -1,5 +1,19 @@
 local RESOURCE_CORE = "es_extended"
 
+---@type BridgeLib.CharacterIdentity
+local CHARACTER_IDENTITY = {
+	table = "users",
+	column = "identifier",
+}
+
+---@type BridgeLib.CharacterTables
+local CHARACTER_TABLES = {
+	owned_vehicles = "owner",
+	addon_account_data = "owner",
+	datastore_data = "owner",
+	user_licenses = "owner",
+}
+
 local GetCoreObject = function()
 	return exports[RESOURCE_CORE]:getSharedObject()
 end
@@ -238,6 +252,11 @@ return function(bridge)
 
 			local affectedRows = MySQL.update.await("UPDATE `users` SET `job` = ?, `job_grade` = ? WHERE `identifier` = ?", { jobName, grade, identifier })
 			return (affectedRows or 0) > 0
+		end,
+
+		DeleteCharacter = function(identifier, kickReason)
+			local characterData = bridge:GetModule("framework").characterData
+			return characterData.DeleteCharacter(bridge, CHARACTER_IDENTITY, CHARACTER_TABLES, identifier, kickReason)
 		end,
 	}
 end
