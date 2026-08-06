@@ -345,6 +345,16 @@ pushes them again when a fetch changes something. Clients render English until t
 the same second their bridge comes up. A server left on English never writes the `GlobalState` key
 naming the language and its clients never ask for an overlay at all.
 
+A resource on a non-English language prints what it did, so a server can see the download working:
+
+```
+[monstor-shop] fr: using 12 cached strings, checking the API for changes
+[monstor-shop] fr: downloaded 12 strings, 12 of 12 keys translated, cached in locales/fr.json
+```
+
+Unlike the update check this reports its failures too - a server that asked for a language wants to
+know when it did not arrive, and silence would look the same as quietly running in English.
+
 The `locales` section of `config.lua` controls it:
 
 | key       | default                               | description                                             |

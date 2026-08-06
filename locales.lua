@@ -154,18 +154,38 @@ end
 ---@param resourceName string
 ---@param language string
 ---@return boolean shipsStrings Whether the resource ships an English file at all.
+---@return number cached How many strings came out of the cached file, before any fetch.
 function Locales.LoadFiles(resourceName, language)
 	local source = Locales.ReadFile(resourceName, Locales.SourceLanguage)
 	if not source then
-		return false
+		return false, 0
 	end
 
+	local cached = 0
+
 	if language ~= Locales.SourceLanguage then
-		Locales.Merge(source, Locales.ReadFile(resourceName, language))
+		local overlay = Locales.ReadFile(resourceName, language)
+
+		for _ in pairs(overlay or {}) do
+			cached = cached + 1
+		end
+
+		Locales.Merge(source, overlay)
 	end
 
 	Locales.strings[resourceName] = source
-	return true
+	return true, cached
+end
+
+---Prints the outcome of a fetch. A server that asked for a language wants to know whether it
+---arrived, so unlike the update check this reports its failures too: silence would be
+---indistinguishable from a resource quietly running in English.
+---@param resourceName string
+---@param language string
+---@param message string
+---@param isError boolean?
+function Locales.Report(resourceName, language, message, isError)
+	print(("%s[%s] %s: %s^0"):format(isError and "^3" or "^2", resourceName, language, message))
 end
 
 ---Fetches one language from the API, caches it for the next start and merges it in for this one.
@@ -180,27 +200,58 @@ function Locales.Fetch(bridge, settings, resourceName, language)
 		language
 	)
 
+	bridge:Verbose(("Requesting translations from %s"):format(url))
+
 	PerformHttpRequest(url, function(status, body)
 		if status ~= 200 or type(body) ~= "string" then
-			bridge:Verbose(("Translation fetch for '%s' returned status %s"):format(language, status))
+			Locales.Report(resourceName, language, ("no translations downloaded, the API returned status %s"):format(status), true)
 			return
 		end
 
 		local success, response = pcall(json.decode, body)
 		if not success or type(response) ~= "table" or type(response.strings) ~= "table" then
-			bridge:Verbose(("Translation fetch for '%s' returned nothing usable"):format(language))
+			Locales.Report(resourceName, language, "no translations downloaded, the API returned nothing usable", true)
 			return
 		end
 
 		local overlay = Locales.Flatten(response.strings)
-		if not next(overlay) then
+		local downloaded = 0
+		for _ in pairs(overlay) do
+			downloaded = downloaded + 1
+		end
+
+		if downloaded == 0 then
+			Locales.Report(resourceName, language, "the API holds no translations for this resource yet", true)
 			return
+		end
+
+		local shipped = 0
+		local translated = 0
+		for key in pairs(Locales.strings[resourceName]) do
+			shipped = shipped + 1
+			if overlay[key] then
+				translated = translated + 1
+			end
 		end
 
 		SaveResourceFile(resourceName, ("locales/%s.json"):format(language), json.encode(response.strings), -1)
 
 		Locales.Merge(Locales.strings[resourceName], overlay)
-		bridge:Verbose(("Loaded %d '%s' translations"):format(response.count or 0, language))
+
+		Locales.Report(
+			resourceName,
+			language,
+			("downloaded %d strings, %d of %d keys translated, cached in locales/%s.json"):format(
+				downloaded,
+				translated,
+				shipped,
+				language
+			)
+		)
+
+		if translated < shipped then
+			print(("^7  %d keys have no '%s' translation yet and stay in English.^0"):format(shipped - translated, language))
+		end
 
 		TriggerClientEvent(Locales.DeliverEvent, -1, resourceName, Locales.strings[resourceName])
 	end, "GET")
@@ -271,7 +322,9 @@ function Locales.Register(bridge)
 	local settings = bridge.context == "server" and bridge:GetModuleConfig("locales") or {}
 	local language = settings.language or GlobalState[Locales.LanguageKey] or Locales.SourceLanguage
 
-	if not Locales.LoadFiles(resourceName, language) then
+	local shipsStrings, cached = Locales.LoadFiles(resourceName, language)
+
+	if not shipsStrings then
 		Locales.strings[resourceName] = {}
 		Locales.Install(bridge, resourceName)
 		return
@@ -293,8 +346,16 @@ function Locales.Register(bridge)
 	Locales.Serve(resourceName)
 
 	if settings.enabled == false then
+		Locales.Report(resourceName, language, ("using %d cached strings, the API is disabled"):format(cached), cached == 0)
 		return
 	end
+
+	Locales.Report(
+		resourceName,
+		language,
+		cached > 0 and ("using %d cached strings, checking the API for changes"):format(cached)
+			or "nothing cached yet, asking the API"
+	)
 
 	CreateThread(function()
 		Wait(settings.delay or Locales.Delay)
