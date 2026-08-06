@@ -1,4 +1,4 @@
-local RESOURCE_MULTIJOB = "al-multijob"
+local RESOURCE_MULTIJOB = "monstor-multijob"
 
 ---@type BridgeLib.Multijob.Server
 local provider = {

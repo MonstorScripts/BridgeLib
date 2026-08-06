@@ -52,7 +52,7 @@ return {
 	name = "multijob",
 	context = "server",
 	providers = {
-		"al-multijob",
+		"monstor-multijob",
 	},
 	required = {
 		"GetPlayersInJob",

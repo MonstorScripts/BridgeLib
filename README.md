@@ -112,8 +112,8 @@ optional module must tolerate a no-op.
 | `target`      | client                   | `qb-target`, `ox_target`         |
 | `zones`       | client                   | `ox_lib`, `PolyZone`             |
 | `society`     | server                   | `esx_addonaccount`, `qb-management` |
-| `multijob`    | server                   | `al-multijob`                    |
-| `bossmenu`    | client / server          | `al-bossmenu`                    |
+| `multijob`    | server                   | `monstor-multijob`               |
+| `bossmenu`    | client / server          | `monstor-bossmenu`               |
 | `fuel`        | client                   | `rcore_fuel`, `LegacyFuel`       |
 | `vehiclekeys` | client                   | `qb-vehiclekeys`, `wasabi_carlock` |
 | `dispatch`    | client                   | `cd_dispatch`                    |

@@ -68,7 +68,7 @@ return {
 	name = "bossmenu",
 	context = "server",
 	providers = {
-		"al-bossmenu",
+		"monstor-bossmenu",
 	},
 	required = {
 		"CanManageJob",

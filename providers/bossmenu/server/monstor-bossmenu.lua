@@ -1,4 +1,4 @@
-local RESOURCE_BOSSMENU = "al-bossmenu"
+local RESOURCE_BOSSMENU = "monstor-bossmenu"
 
 ---@type BridgeLib.BossMenu.Server
 local provider = {

@@ -11,7 +11,7 @@ return {
 	name = "bossmenu",
 	context = "client",
 	providers = {
-		"al-bossmenu",
+		"monstor-bossmenu",
 	},
 	required = {
 		"OpenBossMenu",
