@@ -342,6 +342,11 @@ function Locales.Report(resourceName, language, message, isError)
 end
 
 ---Fetches one language from the API, caches it for the next start and merges it in for this one.
+---
+---A download that matches what is already on disk is the normal case on a server that has not been
+---restarted since the last one, so it stops there: the cache file is left untouched rather than
+---rewritten byte for byte, no client is pushed strings it already has, and the report says so
+---instead of restating the whole download.
 ---@param bridge BridgeLib.Bridge
 ---@param settings BridgeLib.Locales.Settings
 ---@param resourceName string
@@ -384,13 +389,28 @@ function Locales.Fetch(bridge, settings, resourceName, language)
 			end
 		end
 
-		SaveResourceFile(resourceName, Locales.CachePath(language), json.encode(response.strings), -1)
+		local cached = Locales.ReadFile(resourceName, Locales.CachePath(language)) or {}
+
+		if #Locales.ChangedKeys(cached, overlay) > 0 then
+			SaveResourceFile(resourceName, Locales.CachePath(language), json.encode(response.strings), -1)
+		end
 
 		local previous = Locales.strings[resourceName]
 
 		local rebuilt = Locales.Copy(Locales.source[resourceName])
 		Locales.Merge(rebuilt, overlay)
 		Locales.Merge(rebuilt, Locales.overrides[resourceName])
+
+		local changed = Locales.ChangedKeys(previous, rebuilt)
+
+		if #changed == 0 then
+			Locales.Report(
+				resourceName,
+				language,
+				("downloaded %d strings, nothing the files already had has changed"):format(downloaded)
+			)
+			return
+		end
 
 		Locales.strings[resourceName] = rebuilt
 
@@ -406,7 +426,7 @@ function Locales.Fetch(bridge, settings, resourceName, language)
 		)
 
 		Locales.ReportKeys(
-			Locales.ChangedKeys(previous, rebuilt),
+			changed,
 			"%d strings now read differently than they did before the download.",
 			rebuilt
 		)
