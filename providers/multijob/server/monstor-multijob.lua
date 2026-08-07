@@ -2,8 +2,8 @@ local RESOURCE_MULTIJOB = "monstor-multijob"
 
 ---@type BridgeLib.Multijob.Server
 local provider = {
-	GetPlayersInJob = function(jobName)
-		return exports[RESOURCE_MULTIJOB]:ReturnPlayersInJob(jobName) or {}
+	GetPlayersInJob = function(jobName, shouldCheckOffline)
+		return exports[RESOURCE_MULTIJOB]:ReturnPlayersInJob(jobName, shouldCheckOffline) or {}
 	end,
 
 	IsPlayerInJob = function(identifier, jobName)

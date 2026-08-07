@@ -15,10 +15,12 @@
 ---the framework itself reports, so `IsPlayerInJob` is false and the writes are no-ops.
 ---@class BridgeLib.Multijob.Server
 local schema = {
-	---Everyone who holds a job, online or not, as far as the multijob resource has cached.
+	---Everyone online who holds the job. Offline holders are read from storage only when
+	---`shouldCheckOffline` is set, which costs a query per call.
 	---@param jobName string
+	---@param shouldCheckOffline boolean? Defaults to false, i.e. the online cache alone.
 	---@return BridgeLib.Multijob.Holder[]
-	GetPlayersInJob = function(jobName)
+	GetPlayersInJob = function(jobName, shouldCheckOffline)
 		return {}
 	end,
 
