@@ -4,8 +4,7 @@
 ---@field name string
 ---@field grade { level: number, name: string }
 
----Optional module: with no boss menu resource running, `CanManageJob` is false, the reads come back
----empty and the writes are no-ops.
+---Optional module: with no boss menu resource running, everything is false, empty or a no-op.
 ---@class BridgeLib.BossMenu.Server
 local schema = {
 	---Whether the player holds the job and outranks its configured boss grade.

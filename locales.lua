@@ -1,27 +1,4 @@
----Translations, pulled from the monstor-versions API and cached in the resource.
----
----A resource ships `locales/en.json`, so a server with no internet and nothing downloaded still has
----every string. Every language is then fetched from the API and written to `locales/<language>.json`,
----English included: the API is the source of truth for wording, and the shipped file is the floor
----under it. A key the download is missing keeps the string the resource shipped rather than nothing.
----
----For a language other than English the download is an overlay merged over the shipped English, so an
----untranslated key still reads in English. For English itself the download lands in the shipped file
----directly, which is the one case where a fetch rewrites a file that came with the resource.
----
----On top of both sits `locales/<language>.local.json`, which the API never writes and a fetch never
----replaces. It is the server owner's file: any key put in it wins over the shipped and downloaded
----strings for that language, and a key left out of it changes nothing. Renaming a notification or
----rewording one line is a two-key file rather than a fork of the whole locale.
----
----Files are i18next shaped - nested objects, keys as dot paths once flattened - which is the shape
----the API serves and the shape `ox_lib` reads, so the cache file is a normal locale file that can
----also be edited by hand.
----
----The server owns the fetch. A file written at runtime is not in the resource's manifest for this
----session, so clients cannot download it until the next restart; instead the server hands its
----merged strings to each client that asks, and pushes them again when a fetch changes them. Clients
----render what they have on file until that lands, which is the same second the bridge comes up.
+---Translations layered shipped English, then the downloaded language, then the owner's `.local.json`.
 
 ---@class BridgeLib.Locales.Settings
 ---@field enabled boolean? Set to false to never contact the API, using only the files on disk.
@@ -35,58 +12,43 @@ Locales.ApiUrl = "https://versions.monstorscripts.com"
 
 Locales.Delay = 5000
 
----The language every resource ships, the fallback for a key an overlay does not translate, and the
----one language whose download is written straight back into the shipped file.
+---The language every resource ships and the fallback for any key an overlay leaves untranslated.
 Locales.SourceLanguage = "en"
 
----Net event a client raises to ask for the strings the server ended up with, since it cannot read a
----file written after the resource started. Carries the resource name: event names are global to the
----server, so every resource's handler sees every request and answers only for its own.
+---Carries the resource name, since every resource's handler sees every request.
 Locales.RequestEvent = "BridgeLib:locales:request"
 
----Net event carrying one resource's strings back to a client.
 Locales.DeliverEvent = "BridgeLib:locales:deliver"
 
----GlobalState key naming the language the server renders in. `config.lua` is never shipped to
----clients, so a client cannot read the setting itself and learns it from here instead.
+---GlobalState key, since a client cannot read `config.lua` to learn the language itself.
 Locales.LanguageKey = "bridgeLibLocalesLanguage"
 
----Seconds a client must wait between requests, so the event cannot be used to make the server
----serialize a string table on a loop.
+---Seconds between requests one player may make.
 Locales.RequestCooldown = 5
 
----Milliseconds a client waits before reading the language, since a bridge built while the player is
----still connecting can run before the server's `GlobalState` has replicated.
+---Milliseconds a client waits for the server's `GlobalState` to replicate before reading the language.
 Locales.ReplicationDelay = 2000
 
----Flat strings per resource, keyed by the runtime's own resource name. One Lua runtime is one
----resource, so this only ever holds one entry - it is keyed anyway so a mismatched delivery is
----dropped rather than overwriting the wrong table.
+---Flat strings per resource, keyed so a mismatched delivery is dropped rather than overwriting.
 ---@type table<string, table<string, string>>
 Locales.strings = {}
 
----The owner's `locales/<language>.local.json` overrides per resource, kept apart from the merged
----strings so a fetch landing later can be layered under them again rather than over them.
+---Owner overrides per resource, kept apart so a later fetch can be layered under them.
 ---@type table<string, table<string, string>>
 Locales.overrides = {}
 
----The shipped English strings per resource, kept unmerged so a fetch can rebuild the whole table
----from the bottom up. Merging a download over the already-merged table would leave a key the API has
----since dropped sitting there with its stale cached translation.
+---Shipped English per resource, kept unmerged so a fetch can rebuild the table from the bottom up.
 ---@type table<string, table<string, string>>
 Locales.source = {}
 
----Resources already registered from this Lua runtime, so a resource building both a client and a
----server bridge only sets itself up once per context.
+---Keyed by resource and context, so a resource building both bridges sets itself up once per context.
 ---@type table<string, boolean>
 Locales.registered = {}
 
----Last request time per player, for `RequestCooldown`.
 ---@type table<number, number>
 Locales.lastRequest = {}
 
----Nested locale table to flat dot paths. A value that is neither a string nor a table is dropped:
----the API only ever stores strings, so anything else is a hand-edited file gone wrong.
+---Nested locale table to flat dot paths, dropping any value that is neither a string nor a table.
 ---@param node table
 ---@param prefix string?
 ---@param out table<string, string>?
@@ -107,8 +69,7 @@ function Locales.Flatten(node, prefix, out)
 	return out
 end
 
----Reads one locale file out of the resource and flattens it. A missing or malformed file resolves
----to nothing, so a resource that ships no translations simply has none.
+---Reads one locale file out of the resource and flattens it; a missing or malformed file is nil.
 ---@param resourceName string
 ---@param path string
 ---@return table<string, string>?
@@ -126,21 +87,19 @@ function Locales.ReadFile(resourceName, path)
 	return Locales.Flatten(decoded)
 end
 
----Path of the file a language is downloaded and cached into.
 ---@param language string
 ---@return string
 function Locales.CachePath(language)
 	return ("locales/%s.json"):format(language)
 end
 
----Path of the owner's override file for a language, which nothing but the owner ever writes.
+---Nothing but the owner ever writes this file.
 ---@param language string
 ---@return string
 function Locales.OverridePath(language)
 	return ("locales/%s.local.json"):format(language)
 end
 
----Counts the entries in a flat string table.
 ---@param strings table<string, string>?
 ---@return number
 function Locales.Count(strings)
@@ -153,7 +112,6 @@ function Locales.Count(strings)
 	return total
 end
 
----A shallow copy of a flat string table, so a layer can be merged into without losing the original.
 ---@param strings table<string, string>
 ---@return table<string, string>
 function Locales.Copy(strings)
@@ -166,8 +124,7 @@ function Locales.Copy(strings)
 	return copy
 end
 
----The keys an overlay actually replaces in a base, sorted so two runs of the same files log the same
----lines. A key the overlay introduces that the base never had is not a replacement and is left out.
+---Sorted, so two runs of the same files log the same lines.
 ---@param base table<string, string>
 ---@param overlay table<string, string>?
 ---@return string[]
@@ -185,8 +142,7 @@ function Locales.ReplacedKeys(base, overlay)
 	return keys
 end
 
----The keys an overlay holds that the base never had, sorted. In an override file these are almost
----always a typo in the key path: nothing asks for them, so nothing renders them.
+---Sorted. In an override file these are almost always a typo in the key path.
 ---@param base table<string, string>
 ---@param overlay table<string, string>?
 ---@return string[]
@@ -204,8 +160,7 @@ function Locales.AddedKeys(base, overlay)
 	return keys
 end
 
----The keys whose rendered string differs between two builds of a table, sorted. A key present in one
----side only counts as a difference, which is how a translation the API has dropped shows up.
+---Sorted. A key present on one side only counts as a difference.
 ---@param previous table<string, string>
 ---@param current table<string, string>
 ---@return string[]
@@ -232,8 +187,7 @@ function Locales.ChangedKeys(previous, current)
 	return keys
 end
 
----Prints a count under a `Report` line and then every key behind it, with the string that key ends up
----rendering, so the console shows exactly which layer set what without turning anything on.
+---Prints a count under a `Report` line, then every key behind it.
 ---@param keys string[]
 ---@param message string
 ---@param values table<string, string>? Renders each key's resulting string beside it.
@@ -256,7 +210,6 @@ function Locales.ReportKeys(keys, message, values)
 	end
 end
 
----Copies an overlay over a base, keeping the base's value for any key the overlay leaves out.
 ---@param base table<string, string>
 ---@param overlay table<string, string>?
 function Locales.Merge(base, overlay)
@@ -265,8 +218,7 @@ function Locales.Merge(base, overlay)
 	end
 end
 
----Renders one key. Substitutions replace `%{name}` placeholders. An unknown key renders as itself
----so a missing translation shows up as the key rather than as an empty notification.
+---Substitutions replace `%{name}` placeholders; an unknown key renders as itself.
 ---@param resourceName string
 ---@param key string
 ---@param substitutions table<string, any>?
@@ -298,8 +250,7 @@ function Locales.Install(bridge, resourceName)
 	bridge:MarkImplemented({ "Locale" })
 end
 
----Loads the shipped English file, whatever of the configured language has already been cached, and
----the owner's override file, in that order of precedence.
+---Loads the shipped English, the cached language and the owner's overrides, in that precedence.
 ---@param resourceName string
 ---@param language string
 ---@return boolean shipsStrings Whether the resource ships an English file at all.
@@ -330,9 +281,7 @@ function Locales.LoadFiles(resourceName, language)
 	return true, cached, Locales.Count(overrides)
 end
 
----Prints the outcome of a fetch. A server that asked for a language wants to know whether it
----arrived, so unlike the update check this reports its failures too: silence would be
----indistinguishable from a resource quietly running in English.
+---Prints the outcome of a fetch, failures included.
 ---@param resourceName string
 ---@param language string
 ---@param message string
@@ -341,12 +290,7 @@ function Locales.Report(resourceName, language, message, isError)
 	print(("%s[%s] %s: %s^0"):format(isError and "^3" or "^2", resourceName, language, message))
 end
 
----Fetches one language from the API, caches it for the next start and merges it in for this one.
----
----A download that matches what is already on disk is the normal case on a server that has not been
----restarted since the last one, so it stops there: the cache file is left untouched rather than
----rewritten byte for byte, no client is pushed strings it already has, and the report says so
----instead of restating the whole download.
+---Fetches one language and caches it. A download matching what is on disk rewrites nothing.
 ---@param bridge BridgeLib.Bridge
 ---@param settings BridgeLib.Locales.Settings
 ---@param resourceName string
@@ -473,9 +417,7 @@ function Locales.Serve(resourceName)
 	end)
 end
 
----Takes the strings the server settled on, whether they came from a file this client never
----downloaded or from a fetch that landed after it connected. Asked for unconditionally, since even
----an English server can be rendering strings the API changed after the client's files were built.
+---Takes the strings the server settled on. Asked for unconditionally, English servers included.
 ---@param resourceName string
 function Locales.Receive(resourceName)
 	RegisterNetEvent(Locales.DeliverEvent, function(delivered, strings)
@@ -493,8 +435,7 @@ function Locales.Receive(resourceName)
 	end)
 end
 
----Sets the current resource up for translation. Called by `BridgeLib.New` for every bridge; calling
----it again for the same resource and context is a no-op.
+---Called by `BridgeLib.New` for every bridge; a repeat call for the same context is a no-op.
 ---@param bridge BridgeLib.Bridge
 function Locales.Register(bridge)
 	local resourceName = GetCurrentResourceName()

@@ -12,8 +12,7 @@
 ---@field sex string
 ---@field uniqueId any Whatever the dispatch resource uses to deduplicate alerts.
 
----Optional module: with no dispatch resource running, `SendPoliceAlert` is a no-op and
----`GetAlertPlayerInfo` falls back to the local player's coordinates and street.
+---Optional module: with no dispatch resource running, alerts are dropped and caller details are local.
 ---@class BridgeLib.Dispatch.Client
 local schema = {
 	---Sends an alert from the local player's position.

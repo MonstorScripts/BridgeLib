@@ -1,5 +1,4 @@
----Discord's own documented ceilings. Counted in bytes here, which is never more permissive than
----the characters Discord counts, so a payload that fits these fits Discord's.
+---Discord's documented ceilings, counted in bytes, which is never more permissive than characters.
 local LIMIT_TITLE = 256
 local LIMIT_DESCRIPTION = 4096
 local LIMIT_FIELD_NAME = 256
@@ -9,15 +8,13 @@ local LIMIT_FIELDS = 25
 local MAX_ATTEMPTS = 3
 local FALLBACK_RETRY_SECONDS = 1.0
 
----Discord reports `retry_after` in seconds, but older payloads used milliseconds. Anything above
----this is read as milliseconds, since no webhook bucket is ever throttled for a minute.
+---A `retry_after` above this is read as milliseconds, since no bucket is throttled for a minute.
 local SECONDS_CEILING = 60
 
 ---@type table<string, string>
 local overrides = {}
 
----One queue per URL, so a burst against one webhook cannot delay another. Entries are already
----encoded, so a payload the caller mutates after logging cannot change what gets sent.
+---One queue per URL, holding already-encoded entries so a later mutation cannot change what is sent.
 ---@type table<string, { pending: string[], running: boolean }>
 local queues = {}
 
@@ -32,8 +29,7 @@ local function truncate(value, limit)
 	return text:sub(1, limit - 3) .. "..."
 end
 
----Config entries are optional, and an empty string reads the same as an absent one so a shipped
----template full of `""` behaves as though it were untouched.
+---An empty string reads the same as an absent one, so a shipped template of `""` is untouched.
 ---@param value any
 ---@return string?
 local function setting(value)
@@ -43,8 +39,7 @@ local function setting(value)
 	return value
 end
 
----Category keys are matched as written first, then case-insensitively, so a category named
----`BossMenu` still finds a `bossmenu` entry.
+---Matched as written first, then case-insensitively, so `BossMenu` still finds a `bossmenu` entry.
 ---@param webhooks table
 ---@param category string
 ---@return string?
@@ -131,8 +126,7 @@ return function(bridge)
 		return payload
 	end
 
-	---Posts one payload and reports whether it should be retried, blocking the queue thread until
-	---Discord answers.
+	---Posts one payload and reports whether to retry, blocking the queue thread until Discord answers.
 	---@param url string
 	---@param body string
 	---@param attempt number
@@ -172,8 +166,7 @@ return function(bridge)
 			return post(url, body, attempt + 1)
 		end
 
-		---Anything 5xx is Discord's problem and worth another go. A 4xx that is not a rate limit is
-		---the payload's, and retrying it would only repeat the rejection.
+		---5xx is worth another go; a 4xx that is not a rate limit would only repeat the rejection.
 		if status >= 500 then
 			Wait(math.ceil(FALLBACK_RETRY_SECONDS * 1000) * attempt)
 			return post(url, body, attempt + 1)

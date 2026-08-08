@@ -1,7 +1,6 @@
 local RESOURCE_INVENTORY = "ox_inventory"
 
----Totals an ox_inventory Search result, which is either a plain count, a map of
----item name to count, or a list of matching slots.
+---Totals an ox_inventory Search result: a count, a map of item name to count, or a list of slots.
 ---@param result number|table|nil
 ---@return number
 local function totalCount(result)

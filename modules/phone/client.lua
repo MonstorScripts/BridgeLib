@@ -1,5 +1,4 @@
----Optional module: with no phone resource running, `FormatNumber` falls back to `tostring` and
----`CreateCall` is a no-op.
+---Optional module: with no phone resource running, numbers stringify and calls are a no-op.
 ---@class BridgeLib.Phone.Client
 local schema = {
 	---@param number string|number

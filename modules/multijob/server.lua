@@ -11,12 +11,10 @@
 ---@field citizenid string
 ---@field data BridgeLib.Multijob.Entry
 
----Optional module: with no multijob resource running, players are treated as holding only the job
----the framework itself reports, so `IsPlayerInJob` is false and the writes are no-ops.
+---Optional module: with no multijob resource running, reads are false and the writes are no-ops.
 ---@class BridgeLib.Multijob.Server
 local schema = {
-	---Everyone online who holds the job. Offline holders are read from storage only when
-	---`shouldCheckOffline` is set, which costs a query per call.
+	---Everyone online who holds the job, plus offline holders when `shouldCheckOffline` is set.
 	---@param jobName string
 	---@param shouldCheckOffline boolean? Defaults to false, i.e. the online cache alone.
 	---@return BridgeLib.Multijob.Holder[]
@@ -31,8 +29,7 @@ local schema = {
 		return false
 	end,
 
-	---Grants a job and makes it the active one, applying it to the player when they are online and
-	---writing it through to storage when they are not.
+	---Grants a job and makes it the active one, online or through storage.
 	---@param identifier string
 	---@param jobData { name: string, grade: number?, label: string?, gradeName: string?, gradeSalary: number? }
 	---@return boolean granted false when the job is not grantable, e.g. the player is at their cap.

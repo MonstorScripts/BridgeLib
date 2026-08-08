@@ -1,8 +1,7 @@
 local RESOURCE_INVENTORY = "qb-inventory"
 local RESOURCE_CORE = "qb-core"
 
----Every slot of an inventory holding the item. qb-inventory's GetItemsByName only
----resolves players, so standalone inventories are read straight off their items.
+---qb-inventory's GetItemsByName resolves only players, so standalone inventories are read directly.
 ---@param inv BridgeLib.Inventory.Id
 ---@param item string
 ---@return table[]

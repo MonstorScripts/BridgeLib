@@ -16,8 +16,7 @@
 ---@field count number
 ---@field metadata table? Per-slot data: ox_inventory's metadata, qb-inventory's info.
 
----Every provider forwards its arguments verbatim, so the trailing options each one accepts differ.
----Only the leading arguments named here are portable.
+---Arguments are forwarded verbatim, so only the leading ones named here are portable.
 ---@class BridgeLib.Inventory.Server
 local schema = {
 	---@param inv BridgeLib.Inventory.Id

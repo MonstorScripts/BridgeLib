@@ -1,16 +1,4 @@
----Startup update check against the monstor-versions API.
----
----Every server bridge enlists the resource that built it: the slug is the resource name lowercased
----and the version comes out of `fxmanifest.lua`, so a resource opts in by having a server bridge and
----declaring a `version`. A resource without one is skipped rather than reported.
----
----Enlisting writes one `GlobalState` key per resource, which every resource on the server can read.
----One bridge claims the job, waits out the startup delay, gathers every enlisted resource and checks
----them in one request, so a server running fifteen resources still makes a single call. Each result
----is then handed back over a server event to the resource it belongs to, which prints its own line.
----
----A resource started after that request has gone out is a live restart rather than part of the boot,
----so it checks itself on its own instead of waiting for a batch that has already been and gone.
+---Startup update check against the monstor-versions API, batched into one request per server.
 
 ---@class BridgeLib.Versions.Change
 ---@field version string
@@ -39,25 +27,17 @@ Versions.ApiUrl = "https://versions.monstorscripts.com"
 
 Versions.Delay = 5000
 
----GlobalState key prefix. Each resource writes its own `<prefix>:<slug>` key holding its version,
----never a shared table: a state bag write only lands on the next tick, so resources reading a shared
----table and writing it back all read the same empty one and the last write would win.
+---Prefix for a per-resource key, never a shared table: a state bag write lands only on the next tick.
 Versions.StateKey = "bridgeLibVersions"
 
----GlobalState key naming the resource that will make the request.
 Versions.LeaderKey = "bridgeLibVersionsLeader"
 
----GlobalState key marking that the startup request has gone out, so every resource enlisting from
----then on is restarting into a running server rather than booting with one.
+---Marks the startup request as gone out, so anything enlisting later is a live restart.
 Versions.CheckedKey = "bridgeLibVersionsChecked"
 
----Server event the checking resource hands each result back on, so every resource prints its own
----line from its own runtime and the console attributes it to the right script. Deliberately not a
----net event: nothing outside the server can raise it.
+---Deliberately not a net event: nothing outside the server can raise it.
 Versions.ResultEvent = "BridgeLib:versions:result"
 
----Slugs already enlisted from this Lua runtime, so a resource building more than one server bridge
----still enlists once.
 ---@type table<string, boolean>
 Versions.registered = {}
 
@@ -89,15 +69,13 @@ function Versions.StateKeyFor(slug)
 	return ("%s:%s"):format(Versions.StateKey, slug)
 end
 
----Marks one resource as wanting an update check, on a key of its own.
 ---@param slug string
 ---@param version string
 function Versions.Enlist(slug, version)
 	GlobalState[Versions.StateKeyFor(slug)] = version
 end
 
----Every resource running on this server that enlisted itself, as `slug@version`. State bags cannot
----be enumerated, so the resource list is walked and each name tested for its own key.
+---Every enlisted resource as `slug@version`. State bags cannot be enumerated, so names are walked.
 ---@return string[]
 function Versions.Enlisted()
 	local entries = {}
@@ -116,8 +94,7 @@ function Versions.Enlisted()
 	return entries
 end
 
----Checks the given `slug@version` entries in one request and hands each result to the resource it
----belongs to.
+---Checks every `slug@version` entry in one request, handing each result to the resource it belongs to.
 ---@param bridge BridgeLib.Bridge
 ---@param settings BridgeLib.Versions.Settings
 ---@param entries string[]
@@ -169,8 +146,7 @@ function Versions.IsRunning(resourceName)
 	return state == "started" or state == "starting"
 end
 
----Checks this resource alone, for a restart into a server whose startup request has already gone
----out. One resource restarting is one entry, so there is nothing to batch it with.
+---Checks this resource alone, for a restart into a server whose startup request has already gone out.
 ---@param bridge BridgeLib.Bridge
 ---@param settings BridgeLib.Versions.Settings
 ---@param slug string
@@ -183,11 +159,7 @@ function Versions.CheckAlone(bridge, settings, slug, version)
 	end)
 end
 
----Claims the bulk check for this resource. Resources loading in the same tick all read an unset key
----and all claim it, so the claim is re-tested after the delay, once the writes have landed and one
----name has won. Only that resource makes the request.
----
----A leader that is no longer running never will, so its claim is taken over rather than waited on.
+---Claims the bulk check, re-testing the claim after the delay since same-tick writes all win at first.
 ---@param bridge BridgeLib.Bridge
 ---@param settings BridgeLib.Versions.Settings
 function Versions.Elect(bridge, settings)
@@ -213,8 +185,7 @@ function Versions.Elect(bridge, settings)
 	end)
 end
 
----Enlists the current resource for the startup update check. Called by `BridgeLib.New` for every
----server bridge; calling it again for the same resource is a no-op.
+---Called by `BridgeLib.New` for every server bridge; a repeat call for the same resource is a no-op.
 ---@param bridge BridgeLib.Bridge
 function Versions.Register(bridge)
 	local resourceName = GetCurrentResourceName()

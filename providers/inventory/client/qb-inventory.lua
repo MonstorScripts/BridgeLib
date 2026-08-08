@@ -1,8 +1,6 @@
 local RESOURCE_CORE = "qb-core"
 
----Totals every slot holding the item. qb-inventory's own HasItem compares each
----slot's amount against the requirement individually, so a stack split across
----slots reads as not enough.
+---Totals every slot, unlike qb-inventory's HasItem, which reads a split stack as not enough.
 ---@param name string
 ---@return number
 local function countItem(name)

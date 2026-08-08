@@ -16,8 +16,7 @@
 ---@field name string
 ---@field label string
 ---@field grades table<string, BridgeLib.Grade> Keyed by grade level as a string, on either framework.
----@field supportsDuty boolean Whether the framework tracks a duty state for this job. True on qb-core
----jobs that carry `defaultDuty`, always false on ESX, which models off duty as a separate `off_` job.
+---@field supportsDuty boolean True on qb-core jobs carrying `defaultDuty`, always false on ESX.
 
 ---A player, reduced to the fields that mean the same thing on every framework.
 ---@class BridgeLib.Player
@@ -52,8 +51,7 @@
 
 local SAFE_NAME_PATTERN = "^[%w_]+$"
 
----Table and column names are interpolated into the statement rather than bound, so anything that is
----not a bare identifier is refused instead of reaching the database.
+---Names are interpolated rather than bound, so anything but a bare identifier is refused.
 ---@param name any
 ---@return boolean
 local function isSafeName(name)
@@ -98,8 +96,7 @@ local function decodeJson(value)
 	return decoded
 end
 
----Rebuilds a decoded JSON value without the identifier, dropping it whether it appears as a key or
----as a value. Arrays are rebuilt in order rather than holed, so they re-encode as arrays.
+---Rebuilds a decoded JSON value without the identifier, arrays in order so they re-encode as arrays.
 ---@param value any
 ---@param identifier string
 ---@return any scrubbed, boolean changed
@@ -213,9 +210,7 @@ local DROP_TIMEOUT = 10000
 local DROP_POLL_INTERVAL = 100
 local DROP_SETTLE_TIME = 500
 
----Drops a character's player before their rows are touched, and waits for the framework to finish
----with them. The wait is the point: both frameworks save a player on drop, so wiping first would
----see those rows written straight back.
+---Waits out the framework's save-on-drop, which would otherwise write the wiped rows straight back.
 ---@param bridge BridgeLib.Bridge
 ---@param identifier string
 ---@param reason string
@@ -244,24 +239,7 @@ local function dropCharacterPlayer(bridge, identifier, reason)
 	return false
 end
 
----Wipes every trace of one character out of the database, framework agnostically.
----
----Providers call this with the character table their framework keeps and the other tables it owns;
----everything else comes from
----`framework.characterTables` in the library's configuration, so a server describes its third party
----tables once rather than each resource knowing about them.
----
----A column is handled one of two ways. When it holds JSON, the identifier is stripped out of the
----blob wherever it appears, as a key or a value, and the row is rewritten. When the column is the
----identifier outright, the row is deleted. Anything that merely contains the identifier as a
----substring is left alone.
----
----A character whose player is connected is dropped first, and the wipe waits for the framework to
----finish saving them before touching a row. A player who somehow will not drop aborts the wipe
----rather than having their save race it.
----
----Needs oxmysql loaded by the consuming resource, since it reaches past the framework into its
----tables. A table or column that does not exist is logged and skipped rather than aborting the wipe.
+---Wipes one character everywhere `framework.characterTables` names. Needs oxmysql. No undo.
 ---@param bridge BridgeLib.Bridge
 ---@param identity BridgeLib.CharacterIdentity Where the framework keeps the character itself.
 ---@param frameworkTables BridgeLib.CharacterTables The rest of the framework's own tables.
@@ -342,7 +320,6 @@ local schema = {
 	---@return BridgeLib.Player? player nil when that identifier is not currently connected.
 	GetPlayerByIdentifier = function(identifier) end,
 
-	---Every player currently loaded.
 	---@return BridgeLib.Player[]
 	GetPlayers = function() end,
 
@@ -372,25 +349,18 @@ local schema = {
 	---Rebuilds the framework's job cache. A no-op on frameworks that keep none.
 	RefreshJobs = function() end,
 
-	---Character name of a player who is not currently connected.
 	---@param identifier string
 	---@return string name "Unknown" when the identifier is not on record.
 	GetOfflinePlayerName = function(identifier) end,
 
-	---Writes a job straight onto a player who is not currently connected. Needs oxmysql loaded by
-	---the consuming resource, since it reaches past the framework into its player table.
+	---Writes a job onto an offline player. Needs oxmysql loaded by the consuming resource.
 	---@param identifier string
 	---@param jobName string
 	---@param grade number
 	---@return boolean written
 	SetOfflinePlayerJob = function(identifier, jobName, grade) end,
 
-	---Wipes a character out of the database: the framework's own tables plus every table named in
-	---`framework.characterTables`. JSON columns have the identifier stripped out and are rewritten,
-	---columns that are the identifier outright have their row deleted.
-	---
-	---There is no undo. A connected player is dropped first and the wipe waits for the framework to
-	---save them, so their session cannot write the rows back afterwards.
+	---Wipes a character everywhere `framework.characterTables` names, dropping them first. No undo.
 	---@param identifier string
 	---@param kickReason string? Shown to the player when they are connected.
 	---@return boolean wiped false when the identifier is not on record, or the player would not drop.
@@ -428,9 +398,7 @@ return {
 	},
 	schema = schema,
 
-	---The framework agnostic half of `DeleteCharacter`, reached by a provider through
-	---`bridge:GetModule("framework").characterData`. A provider supplies only the tables its own
-	---framework owns and lets this walk the rest.
+	---The framework agnostic half of `DeleteCharacter`, which a provider calls with its own tables.
 	characterData = {
 		DeleteCharacter = deleteCharacter,
 	},

@@ -43,8 +43,7 @@ return {
 	providers = {
 		"lb-phone",
 		"npwd",
-		---Last resort: the library ships this adapter, so this entry always matches, and it
-		---resolves to nothing unless `phone.database` in the config describes a phone's tables.
+		---Last resort: always matches, and resolves to nothing unless `phone.database` is configured.
 		{ adapter = "sql" },
 	},
 	schema = schema,

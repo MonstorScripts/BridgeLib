@@ -5,8 +5,7 @@
 ---| "jobUpdated" # `(job: BridgeLib.LiveJob?)`, fired both on job change and on any player data change.
 ---| "playerDataUpdated" # `(playerData: table)`, the framework's whole player data table.
 
----A player's current job, normalised out of the framework's own job table. Emitted with
----`jobUpdated` on both contexts and returned inside `BridgeLib.PlayerData`.
+---A player's current job, normalised out of the framework's own job table.
 ---@class BridgeLib.LiveJob
 ---@field name string
 ---@field label string Display label, falling back to `name`.
@@ -33,8 +32,7 @@ local schema = {
 	---@param length number? Milliseconds to display for.
 	LocalNotify = function(message, type, length) end,
 
-	---Runs a blocking progress bar. Providers differ on whether they return the outcome, so treat
-	---`onFinish` and `onCancel` as the reliable way to observe it.
+	---Blocking. Providers differ on their return, so observe the outcome through the callbacks.
 	---@param name string Identifier for the action, used by the underlying progress resource.
 	---@param label string Text shown to the player.
 	---@param duration number Milliseconds.

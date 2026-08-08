@@ -12,9 +12,7 @@ local function trimmed(number)
 	return (tostring(number or ""):gsub("^%s*(.-)%s*$", "%1"))
 end
 
----Rows hold whatever format the phone was configured with when they were written, and callers pass
----numbers with punctuation, so a lookup carries the phone's own format alongside the raw input and
----the digits only form rather than guessing which one the table uses.
+---Rows hold whatever format the phone was configured with, so a lookup carries every candidate form.
 ---@param number string|number
 ---@return string[]
 local function lookupCandidates(number)

@@ -10,8 +10,7 @@ local function trimmed(number)
 	return (tostring(number or ""):gsub("^%s*(.-)%s*$", "%1"))
 end
 
----npwd stores whatever number its framework integration handed it, so a lookup carries both the raw
----input and its digits only form rather than guessing which one the rows hold.
+---npwd stores whatever its framework handed it, so a lookup carries both raw and digits only forms.
 ---@param number string|number
 ---@return string[]
 local function lookupCandidates(number)
@@ -44,10 +43,7 @@ end
 ---@param bridge BridgeLib.Bridge
 ---@return BridgeLib.Phone.Server
 return function(bridge)
-	---npwd exposes no server side hook for a sent message, so the live feed rides the same net event
-	---its own interface sends on. That payload comes from a client, so it is only ever reported after
-	---it checks out as a one to one thread the claimed sender is part of, and nothing that reads
-	---stored history goes through it.
+	---npwd has no server side hook, so this rides its net event and validates the client's payload.
 	RegisterNetEvent("npwd:sendMessage", function(_, messageData)
 		if type(messageData) ~= "table" then
 			return

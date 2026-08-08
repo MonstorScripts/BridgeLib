@@ -14,8 +14,7 @@
 
 ---@alias BridgeLib.ProviderList (string|BridgeLib.Provider)[]
 
----One module's contract for one context: what it exports, who can supply it, and what a supplier
----must implement to count.
+---One module's contract for one context.
 ---@class BridgeLib.Module
 ---@field name string
 ---@field context BridgeLib.Context
@@ -65,20 +64,18 @@ BridgeLib.Root = "BridgeLib"
 ---@type table<string, table<string, BridgeLib.Module>>
 BridgeLib.Modules = {}
 
----Settings shared by every bridge, loaded once from `<root>.config` on first use. Modules read
----their own section out of it, so one file configures the whole library.
+---Settings shared by every bridge, loaded once from `<root>.config` on first use.
 ---@type table?
 BridgeLib.Config = nil
 
----Supplies configuration directly, ahead of the `config.lua` the library ships. Servers that keep
----their secrets outside the repository call this before building a bridge.
+---Supplies configuration directly, ahead of the `config.lua` the library ships.
 ---@param config table
 function BridgeLib.SetConfig(config)
 	assert(type(config) == "table", "BridgeLib.SetConfig expects a config table")
 	BridgeLib.Config = config
 end
 
----Replaces the library wide default logger. Individual bridges may still override it.
+---Individual bridges may still override this.
 ---@param logger BridgeLib.Logger
 function BridgeLib.SetLogger(logger)
 	BridgeLib.Logger = logger
@@ -101,7 +98,6 @@ function BridgeLib.RegisterModule(module)
 	BridgeLib.Modules[module.context][module.name] = module
 end
 
----Returns true when the named resource is running.
 ---@param resourceName string
 ---@return boolean
 function BridgeLib.HasResource(resourceName)
@@ -162,13 +158,7 @@ function Bridge:GetLogger()
 	return self.logger or BridgeLib.Logger
 end
 
----The library's configuration, loaded from `<root>.config` the first time anything asks for it. A
----missing or malformed file resolves to an empty table, so every module falls back to its defaults
----rather than the library failing to load.
----
----`config.lua` is not shipped to clients, so this resolves to an empty table in a client context
----unless one was handed over with `SetConfig`. Nothing secret in it can leak that way, and no
----client module reads it.
+---A missing or malformed file, or any client context without `SetConfig`, resolves to an empty table.
 ---@return table
 function Bridge:GetConfig()
 	if BridgeLib.Config then
@@ -210,7 +200,6 @@ function Bridge:Verbose(message)
 	self:GetLogger().verbose(("[%s] %s"):format(self.label, message))
 end
 
----Registers a handler for a lifecycle event emitted by a provider.
 ---@param event string
 ---@param handler function
 function Bridge:On(event, handler)
@@ -219,7 +208,6 @@ function Bridge:On(event, handler)
 	handlers[#handlers + 1] = handler
 end
 
----Emits a lifecycle event to every registered handler.
 ---@param event string
 ---@param ... any
 function Bridge:Emit(event, ...)
@@ -241,8 +229,7 @@ function Bridge:MarkImplemented(keys)
 	end
 end
 
----Copies schema stubs onto the bridge without claiming they are implemented. Keys already present
----are left alone, so the first module to declare an export wins.
+---Copies schema stubs on without claiming they are implemented; the first module to declare an export wins.
 ---@param schema table<string, function>
 function Bridge:Install(schema)
 	for key, value in pairs(schema) do
@@ -252,7 +239,6 @@ function Bridge:Install(schema)
 	end
 end
 
----Requires one adapter file, calling it with the bridge when it returns a builder function.
 ---Returns nil rather than raising when the adapter fails to load or yields the wrong shape.
 ---@param provider string
 ---@param module string
@@ -290,9 +276,7 @@ function Bridge:Apply(resource, implementation)
 	end
 end
 
----Loads the adapter for the first available provider. A provider whose resource is running but whose
----adapter fails to load resolves to nothing rather than falling through to the next candidate. A
----provider naming no resource is one the library ships itself, so it is always available.
+---A running provider whose adapter fails to load resolves to nothing rather than falling through.
 ---@param providers BridgeLib.ProviderList
 ---@param pathPrefix string?
 ---@return string? resource, table? implementation
@@ -367,8 +351,7 @@ function Bridge:GetProviderPath(module)
 	return module.providerPath or ("%s.providers.%s.%s."):format(BridgeLib.Root, module.name, module.context)
 end
 
----Installs a catalog module's schema without loading a provider for it yet. Keys outside `required`
----count as implemented from the start, so `Verify` only insists on the mandatory ones.
+---Installs a catalog module's schema without loading a provider for it yet.
 ---@param name string
 ---@param isOptional boolean
 ---@return BridgeLib.Declaration
@@ -462,13 +445,7 @@ function Bridge:Verify()
 	end
 end
 
----Creates a bridge for one context. `options.schema`, when given, becomes `bridge.exports`.
----
----Every bridge registers its own resource with `locales.lua`, which loads the resource's shipped
----strings and installs `Locale` on the bridge.
----
----A server bridge also registers its own resource with `versions.lua`, which checks the resource's
----manifest version against the monstor-versions API shortly after startup.
+---Creates a bridge for one context, registering it with `locales.lua` and, on the server, `versions.lua`.
 ---@param options BridgeLib.Options
 ---@return BridgeLib.Bridge
 function BridgeLib.New(options)
