@@ -18,6 +18,13 @@ local overrides = {}
 ---@type table<string, { pending: string[], running: boolean }>
 local queues = {}
 
+---@param byte number?
+---@return boolean
+local function isContinuationByte(byte)
+	return byte ~= nil and byte >= 0x80 and byte < 0xC0
+end
+
+---Backs the cut off a split codepoint, since Discord rejects a body that is not valid UTF-8.
 ---@param value any
 ---@param limit number
 ---@return string
@@ -26,7 +33,14 @@ local function truncate(value, limit)
 	if #text <= limit then
 		return text
 	end
-	return text:sub(1, limit - 3) .. "..."
+
+	local cut = limit - 3
+
+	while cut > 0 and isContinuationByte(text:byte(cut + 1)) do
+		cut = cut - 1
+	end
+
+	return text:sub(1, cut) .. "..."
 end
 
 ---An empty string reads the same as an absent one, so a shipped template of `""` is untouched.
