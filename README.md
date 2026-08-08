@@ -155,8 +155,8 @@ formats a number outside its own interface, so `FormatNumber` there is `tostring
 server side hook for a sent message, so `messageSent` rides the net event its interface sends on:
 that payload originates on a client, so the provider only reports it once it checks out as a one to
 one thread and the sender it claims matches the number the caller actually owns, and nothing that
-reads stored history goes through it. Resolving that number goes through the `framework` module, so
-a bridge that declares `phone` without `framework` drops the event rather than trusting the payload.
+reads stored history goes through it. That number comes from npwd's own `getPlayerData` export, so a
+caller npwd has no player loaded for drops the event rather than being trusted on its payload.
 
 The `framework` module also emits lifecycle events, so adapters never call into your code directly:
 
