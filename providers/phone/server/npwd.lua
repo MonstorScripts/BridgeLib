@@ -28,6 +28,43 @@ local function lookupCandidates(number)
 	return { rawNumber, digits }
 end
 
+---Compares raw first, then digits only, since npwd stores whatever format it was handed.
+---@param a string|number
+---@param b string|number
+---@return boolean
+local function sameNumber(a, b)
+	local rawA, rawB = trimmed(a), trimmed(b)
+
+	if rawA ~= "" and rawA == rawB then
+		return true
+	end
+
+	local digitsA = digitsOnly(rawA)
+
+	return digitsA ~= "" and digitsA == digitsOnly(rawB)
+end
+
+---@param bridge BridgeLib.Bridge
+---@param src number
+---@return string? number nil when the framework module is absent or the caller has no number.
+local function callerNumber(bridge, src)
+	if type(bridge.exports.GetPlayer) ~= "function" then
+		return nil
+	end
+
+	local player = bridge.exports.GetPlayer(src)
+	local identifier = player and player.UniqueId
+
+	if type(identifier) ~= "string" or identifier == "" then
+		return nil
+	end
+
+	return MySQL.scalar.await(
+		"SELECT phone_number FROM npwd_phone_numbers WHERE identifier = ? LIMIT 1",
+		{ identifier }
+	)
+end
+
 ---@param conversationList string
 ---@return string[]
 local function participantsOf(conversationList)
@@ -43,8 +80,11 @@ end
 ---@param bridge BridgeLib.Bridge
 ---@return BridgeLib.Phone.Server
 return function(bridge)
-	---npwd has no server side hook, so this rides its net event and validates the client's payload.
+	---npwd has no server side hook, so this rides its net event. The payload comes from a client, so
+	---the sender it claims is checked against the number the caller actually owns before it is emitted.
 	RegisterNetEvent("npwd:sendMessage", function(_, messageData)
+		local src = source
+
 		if type(messageData) ~= "table" then
 			return
 		end
@@ -67,6 +107,12 @@ return function(bridge)
 		end
 
 		if not recipient then
+			return
+		end
+
+		local owned = callerNumber(bridge, src)
+		if not owned or not sameNumber(owned, sender) then
+			bridge:Debug(("Dropped a message %d claimed to send as '%s'"):format(src, sender))
 			return
 		end
 

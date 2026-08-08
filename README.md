@@ -154,7 +154,9 @@ The `npwd` provider reads npwd's own `npwd_messages_participants`, `npwd_message
 formats a number outside its own interface, so `FormatNumber` there is `tostring`. npwd exposes no
 server side hook for a sent message, so `messageSent` rides the net event its interface sends on:
 that payload originates on a client, so the provider only reports it once it checks out as a one to
-one thread the claimed sender is part of, and nothing that reads stored history goes through it.
+one thread and the sender it claims matches the number the caller actually owns, and nothing that
+reads stored history goes through it. Resolving that number goes through the `framework` module, so
+a bridge that declares `phone` without `framework` drops the event rather than trusting the payload.
 
 The `framework` module also emits lifecycle events, so adapters never call into your code directly:
 
