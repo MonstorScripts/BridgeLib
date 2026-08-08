@@ -124,90 +124,40 @@ function Locales.Copy(strings)
 	return copy
 end
 
----Sorted, so two runs of the same files log the same lines.
+---How many of `overlay`'s keys `base` already holds; the rest are keys nothing renders.
 ---@param base table<string, string>
 ---@param overlay table<string, string>?
----@return string[]
-function Locales.ReplacedKeys(base, overlay)
-	local keys = {}
+---@return number
+function Locales.SharedCount(base, overlay)
+	local shared = 0
 
 	for key in pairs(overlay or {}) do
 		if base[key] ~= nil then
-			keys[#keys + 1] = key
+			shared = shared + 1
 		end
 	end
 
-	table.sort(keys)
-
-	return keys
+	return shared
 end
 
----Sorted. In an override file these are almost always a typo in the key path.
----@param base table<string, string>
----@param overlay table<string, string>?
----@return string[]
-function Locales.AddedKeys(base, overlay)
-	local keys = {}
-
-	for key in pairs(overlay or {}) do
-		if base[key] == nil then
-			keys[#keys + 1] = key
-		end
-	end
-
-	table.sort(keys)
-
-	return keys
-end
-
----Sorted. A key present on one side only counts as a difference.
+---A key present on one side only counts as a difference.
 ---@param previous table<string, string>
 ---@param current table<string, string>
----@return string[]
-function Locales.ChangedKeys(previous, current)
-	local seen = {}
-	local keys = {}
-
+---@return boolean
+function Locales.Differs(previous, current)
 	for key, value in pairs(current) do
-		seen[key] = true
-
 		if previous[key] ~= value then
-			keys[#keys + 1] = key
+			return true
 		end
 	end
 
 	for key in pairs(previous) do
-		if not seen[key] then
-			keys[#keys + 1] = key
+		if current[key] == nil then
+			return true
 		end
 	end
 
-	table.sort(keys)
-
-	return keys
-end
-
----Prints a count under a `Report` line, then every key behind it.
----@param keys string[]
----@param message string
----@param values table<string, string>? Renders each key's resulting string beside it.
-function Locales.ReportKeys(keys, message, values)
-	if #keys == 0 then
-		return
-	end
-
-	print(("^7  %s^0"):format(message:format(#keys)))
-
-	for index = 1, #keys do
-		local key = keys[index]
-		local value = values and values[key]
-
-		if value ~= nil then
-			print(("^7    %s = %s^0"):format(key, value))
-		else
-			print(("^7    %s^0"):format(key))
-		end
-	end
+	return false
 end
 
 ---@param base table<string, string>
@@ -324,18 +274,12 @@ function Locales.Fetch(bridge, settings, resourceName, language)
 			return
 		end
 
-		local shipped = 0
-		local translated = 0
-		for key in pairs(Locales.source[resourceName]) do
-			shipped = shipped + 1
-			if overlay[key] then
-				translated = translated + 1
-			end
-		end
+		local shipped = Locales.Count(Locales.source[resourceName])
+		local translated = Locales.SharedCount(overlay, Locales.source[resourceName])
 
 		local cached = Locales.ReadFile(resourceName, Locales.CachePath(language)) or {}
 
-		if #Locales.ChangedKeys(cached, overlay) > 0 then
+		if Locales.Differs(cached, overlay) then
 			SaveResourceFile(resourceName, Locales.CachePath(language), json.encode(response.strings), -1)
 		end
 
@@ -345,9 +289,7 @@ function Locales.Fetch(bridge, settings, resourceName, language)
 		Locales.Merge(rebuilt, overlay)
 		Locales.Merge(rebuilt, Locales.overrides[resourceName])
 
-		local changed = Locales.ChangedKeys(previous, rebuilt)
-
-		if #changed == 0 then
+		if not Locales.Differs(previous, rebuilt) then
 			Locales.Report(
 				resourceName,
 				language,
@@ -369,23 +311,13 @@ function Locales.Fetch(bridge, settings, resourceName, language)
 			)
 		)
 
-		Locales.ReportKeys(
-			changed,
-			"%d strings now read differently than they did before the download.",
-			rebuilt
-		)
+		local stillOverridden = Locales.SharedCount(overlay, Locales.overrides[resourceName])
 
-		Locales.ReportKeys(
-			Locales.ReplacedKeys(overlay, Locales.overrides[resourceName]),
-			("%%d downloaded strings stay replaced by locales/%s.local.json."):format(language),
-			Locales.overrides[resourceName]
-		)
-
-		if translated < shipped then
-			print(
-				("^7  %d keys are not in the download and keep the string the resource shipped.^0"):format(
-					shipped - translated
-				)
+		if stillOverridden > 0 then
+			Locales.Report(
+				resourceName,
+				language,
+				("%d of them stay replaced by locales/%s.local.json"):format(stillOverridden, language)
 			)
 		end
 
@@ -471,25 +403,25 @@ function Locales.Register(bridge)
 		return
 	end
 
-	if overridden > 0 then
+	local replaced = Locales.SharedCount(Locales.source[resourceName], Locales.overrides[resourceName])
+
+	if replaced > 0 then
 		Locales.Report(
 			resourceName,
 			language,
-			("%d strings replaced from locales/%s.local.json"):format(overridden, language)
+			("%d strings replaced from locales/%s.local.json"):format(replaced, language)
 		)
+	end
 
-		local overrides = Locales.overrides[resourceName]
-
-		Locales.ReportKeys(
-			Locales.ReplacedKeys(Locales.source[resourceName], overrides),
-			"%d of them replace a shipped string.",
-			overrides
-		)
-
-		Locales.ReportKeys(
-			Locales.AddedKeys(Locales.source[resourceName], overrides),
-			"%d of them are keys no shipped file has, so nothing renders them.",
-			overrides
+	if overridden > replaced then
+		Locales.Report(
+			resourceName,
+			language,
+			("%d keys in locales/%s.local.json match no shipped string, so nothing renders them"):format(
+				overridden - replaced,
+				language
+			),
+			true
 		)
 	end
 
