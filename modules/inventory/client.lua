@@ -6,12 +6,12 @@ local schema = {
 	HasItem = function(name, amount) end,
 
 	---NUI path the inventory serves its item images from, for resources that render their own slots.
-	---@return string
+	---@return string? path nil from an inventory whose image layout the library does not know.
 	GetImagePath = function() end,
 
 	---@param inventoryType string Inventory kind, e.g. "stash" or "shop".
 	---@param data table Identity of the inventory, in the shape the inventory resource expects.
-	---@return boolean opened
+	---@return boolean opened Falsy from an inventory that exposes no client side open.
 	OpenInventory = function(inventoryType, data) end,
 }
 
@@ -22,11 +22,15 @@ return {
 	providers = {
 		"qb-inventory",
 		"ox_inventory",
+		"codem-inventory",
+		"qs-inventory-pro",
+		"qs-inventory",
+		"origen_inventory",
+		"lj-inventory",
+		"ps-inventory",
 	},
 	required = {
 		"HasItem",
-		"GetImagePath",
-		"OpenInventory",
 	},
 	schema = schema,
 }

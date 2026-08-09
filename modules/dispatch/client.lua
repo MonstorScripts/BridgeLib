@@ -4,6 +4,12 @@
 ---@field jobs string[]? Jobs to alert, defaulting to police.
 ---@field blipText string? Blip label, defaulting to `title`.
 ---@field sprite number? Blip sprite, defaulting to the provider's own.
+---@field scale number? Blip scale, for the providers that size their own blip.
+---@field colour number? Blip colour, for the providers that colour their own blip.
+---@field code string? Short call code, e.g. "10-31".
+---@field codeName string? Internal name of the call, for the providers that key alerts by one.
+---@field description string? One line describing the call, shown next to `code`.
+---@field priority number? Call priority, where the provider ranks its calls.
 
 ---Caller details the dispatch resource attaches to an alert.
 ---@class BridgeLib.Dispatch.PlayerInfo
@@ -38,6 +44,14 @@ return {
 	context = "client",
 	providers = {
 		"cd_dispatch",
+		"linden_outlawalert",
+		"fd_dispatch",
+		"ps-dispatch",
+		"qs-dispatch",
+		"core_dispatch",
+		"origen_police",
+		"codem-dispatch",
+		"tk_dispatch",
 	},
 	schema = schema,
 }

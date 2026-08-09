@@ -68,10 +68,16 @@ return {
 		},
 	},
 
-	---Discord logging. Consuming resources pick the category name they log under; the ones the
-	---monstor scripts use are listed below. `default` catches every category without its own URL,
-	---and a category that resolves to no URL at all is dropped rather than erroring.
+	---Logging. Consuming resources pick the category name they log under; the ones the monstor
+	---scripts use are listed below. `default` catches every category without its own URL, and a
+	---category that resolves to no URL at all is dropped rather than erroring.
 	logging = {
+		---Where logs go. Left unset they go to the Discord webhooks below. `fivemanage` and `fivemerr`
+		---each need their own resource running (`fmsdk` and `fm-logs`), and `loki` and `grafana` both
+		---push to the `loki` section further down.
+		---@type "discord"|"fivemanage"|"fivemerr"|"loki"|"grafana"
+		service = "discord",
+
 		webhooks = {
 			default = "",
 
@@ -88,6 +94,25 @@ return {
 
 		---Appended to the bottom of every embed when set.
 		footer = "",
+
+		---Fivemanage only. The dataset logs are filed under, defaulting to `default`.
+		dataset = "",
+
+		---Fivemerr only. Whether each log carries a screenshot of the player who caused it.
+		screenshots = false,
+
+		---Loki and Grafana Cloud, which speak the same push API. `endpoint` is the host on its own,
+		---without the `/loki/api/v1/push` path. Authenticate with `apiKey` on Grafana Cloud, or with
+		---`user` and `password` against a self-hosted Loki. `tenant` is only needed in multi-tenant
+		---mode, and `server` overrides the label taken from `sv_projectName`.
+		loki = {
+			endpoint = "",
+			apiKey = "",
+			user = "",
+			password = "",
+			tenant = "",
+			server = "",
+		},
 	},
 
 	---Phone. A server running lb-phone or npwd needs nothing here; their providers are picked up

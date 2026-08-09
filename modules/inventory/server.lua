@@ -111,23 +111,20 @@ return {
 	providers = {
 		"qb-inventory",
 		"ox_inventory",
+		"codem-inventory",
+		"qs-inventory-pro",
+		"qs-inventory",
+		"origen_inventory",
 	},
+	---Only the item handling every supported inventory exposes. The stash and slot functions below it
+	---are ox_inventory and qb-inventory only, so a provider that omits one keeps the schema stub.
 	required = {
 		"HasItem",
-		"SetItemData",
-		"CreateInventory",
-		"GetInventory",
-		"OpenInventory",
 		"AddItem",
 		"RemoveItem",
 		"CanAddItem",
 		"GetItemCount",
 		"CanCarryItem",
-		"GetItemData",
-		"RegisterStash",
-		"GetInventoryItems",
-		"GetItemSlots",
-		"ClearInventory",
 	},
 	schema = schema,
 }

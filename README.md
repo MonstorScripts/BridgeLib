@@ -108,17 +108,21 @@ optional module must tolerate a no-op.
 | module        | context                  | providers                        |
 | ------------- | ------------------------ | -------------------------------- |
 | `framework`   | client / server / shared | `qb-core`, `es_extended`         |
-| `inventory`   | client / server          | `qb-inventory`, `ox_inventory`   |
-| `target`      | client                   | `qb-target`, `ox_target`         |
+| `inventory`   | client / server          | `qb-inventory`, `ox_inventory`, `codem-inventory`, `qs-inventory-pro`, `qs-inventory`, `origen_inventory`, and client only `lj-inventory`, `ps-inventory` |
+| `target`      | client                   | `qb-target`, `ox_target`, `qtarget` |
 | `zones`       | client                   | `ox_lib`, `PolyZone`             |
 | `society`     | server                   | `esx_addonaccount`, `qb-management` |
 | `multijob`    | server                   | `monstor-multijob`               |
 | `bossmenu`    | client / server          | `monstor-bossmenu`               |
 | `fuel`        | client                   | `rcore_fuel`, `LegacyFuel`       |
 | `vehiclekeys` | client                   | `qb-vehiclekeys`, `wasabi_carlock` |
-| `dispatch`    | client                   | `cd_dispatch`                    |
+| `dispatch`    | client                   | `cd_dispatch`, `linden_outlawalert`, `fd_dispatch`, `ps-dispatch`, `qs-dispatch`, `core_dispatch`, `origen_police`, `codem-dispatch`, `tk_dispatch` |
+| `doorlock`    | client / server          | `ox_doorlock`, `qb-doorlock`, `nui-doorlock`, `cd_doorlock`, `doors_creator` |
 | `phone`       | client / server          | `lb-phone`, `npwd`, `sql`        |
-| `logging`     | server                   | `BridgeLib`                      |
+| `email`       | client / server          | `qb-phone`, `qs-smartphone-pro`, `qs-smartphone`, `gksphone`, `roadphone`, `npwd`, `lb-phone`, `high-phone`, `yseries`, `yflip-phone`, `okokPhone` |
+| `ui`          | client                   | `lation_ui`, `ox_lib`, `cd_drawtextui`, `qb-core`, `esx_progressbar` |
+| `minigames`   | client                   | `BridgeLib`                      |
+| `logging`     | server                   | `fmsdk`, `fm-logs`, `loki`, `BridgeLib` |
 
 `zones` prefers `ox_lib`, which every consumer already runs, so the `PolyZone` adapter is only
 reached when ox_lib is absent. PolyZone ships no exports — its zone classes are globals — so that
@@ -131,13 +135,61 @@ alternative. Declare them through `optionalModules`, since their fallback stubs 
 safe: a player holds only the job the framework itself reports, the reads come back empty and the
 writes are no-ops.
 
-`logging` posts structured embeds to Discord itself, rather than through a framework. A category
+`inventory` treats item handling as the contract every inventory has to meet — `HasItem`,
+`GetItemCount`, `AddItem`, `RemoveItem`, `CanAddItem` and `CanCarryItem` on the server, `HasItem` on
+the client. Everything else it defines is `ox_inventory` and `qb-inventory` only, since no other
+inventory exposes stashes, slot metadata or an item catalog through comparable exports. A provider
+that omits one of those keeps the schema stub, so `GetItemSlots` on a `codem-inventory` server reads
+as nothing rather than fatalling. `lj-inventory` and `ps-inventory` are `qb-inventory` forks and are
+adapted as such, on the client only. `origen_inventory` publishes no NUI image directory, so
+`GetImagePath` is the one stub it leaves in place.
+
+`dispatch` composes its own alert on every provider but `cd_dispatch`, which is the only one that
+tells the caller who is calling. The rest read caller details from the module's own fallback, so
+`GetAlertPlayerInfo` returns the local street and coordinates and a `sex` of `person` there. An
+alert carries more than the providers can all use — `code`, `codeName`, `description` and
+`priority` alongside the blip fields — and each adapter takes the ones its resource asks for.
+
+`doorlock` is split by where the door is actually resolved. `qb-doorlock` and `nui-doorlock` key
+doors by an id the caller already holds, so they appear in both contexts. `ox_doorlock` and
+`doors_creator` look a door up by name — through an export and through `doorscreator_doors`
+respectively — and `cd_doorlock` pushes the new state out to clients, so those three are server
+only. A client on one of them calls the server bridge instead.
+
+`email` is split the same way, by where a mailbox is addressed from. The phones on the client send
+to whoever is holding the phone; the ones on the server look the mailbox up from a source, so
+`SendEmail` there takes one. `yflip-phone` maps a framework identifier to a phone number, so it also
+needs the `framework` module on the same bridge and logs rather than sending when it is absent.
+`npwd` has no mailbox at all, so an email there arrives as a notification in its email app.
+
+`ui` covers the parts of a UI resource that are not a framework's: notifications, a blocking
+progress bar, and persistent on-screen text. It is separate from `framework`, whose `Progressbar` is
+callback shaped and whose `LocalNotify` always exists — `ui` is what a server adds on top when it
+runs `ox_lib` or `lation_ui`. `cd_drawtextui` only draws text and `esx_progressbar` only runs a
+progress bar, so each leaves the rest of the module on its stubs.
+
+`minigames` is the one module that is not a choice between interchangeable resources: a caller names
+the exact minigame, and a server can run several of the resources at once. So the library hosts the
+whole catalog itself and checks `GetResourceState` per call. `GetHacks` lists every name it knows,
+`HasHack` reports whether that one's resource is running, and `StartHack` calls back with `false`
+rather than blocking when it is not.
+
+`logging` defaults to posting structured embeds to Discord itself, rather than through a framework. A category
 names one destination, and its URL is resolved in order from `SetWebhookUrl`, the matching key under
 `logging.webhooks` in `config.lua`, then `logging.webhooks.default`. A category that resolves to no
 URL is dropped, so a server that configures nothing logs nothing. `logging.username`,
 `logging.avatarUrl` and `logging.footer` decorate every payload when set. This is the only place the
 library logs from — the `framework` module deliberately exposes no logging of its own, so what a
 server sees never depends on which framework it runs.
+
+`logging.service` sends the same calls somewhere else instead: `fivemanage` through the `fmsdk`
+resource, `fivemerr` through `fm-logs`, and `loki` or `grafana` straight to a Loki push endpoint
+described by `logging.loki`. Each of those adapters opts out unless `service` names it, so a server
+running `fmsdk` for its own reasons keeps logging to its webhooks until it says otherwise. None of
+them has webhooks, so `SetWebhookUrl` and `SendWebhook` are no-ops there and `GetWebhookUrl` reads
+as nil — only `LogFields` and `LogMessage` are required of a log service. Grafana Cloud and a
+self-hosted Loki speak the same API and share the one `logging.loki` section, told apart by whether
+it carries an `apiKey` or a `user` and `password`.
 
 `phone` on the server reads stored messages straight out of the database, since no phone resource
 exposes an export for it, so the consuming resource must load `@oxmysql/lib/MySQL.lua` before its

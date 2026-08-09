@@ -40,15 +40,19 @@ local schema = {
 return {
 	name = "logging",
 	context = "server",
+	---Every entry above the Discord one opts out unless `logging.service` names it, so a server that
+	---configures nothing keeps logging to its webhooks even while running one of those resources.
 	providers = {
+		"fmsdk",
+		"fm-logs",
+		{ adapter = "loki" },
 		{ adapter = "BridgeLib" },
 	},
+	---The webhook functions are Discord's own, so a log service that has no such concept keeps their
+	---stubs: `GetWebhookUrl` reads as nil and the other two are no-ops.
 	required = {
-		"SetWebhookUrl",
-		"GetWebhookUrl",
 		"LogFields",
 		"LogMessage",
-		"SendWebhook",
 	},
 	schema = schema,
 }

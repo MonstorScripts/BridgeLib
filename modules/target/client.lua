@@ -53,6 +53,7 @@ return {
 	providers = {
 		"qb-target",
 		"ox_target",
+		"qtarget",
 	},
 	required = {
 		"AddBoxZone",
