@@ -278,7 +278,8 @@ function Bridge:Apply(resource, implementation)
 	end
 end
 
----A running provider whose adapter fails to load resolves to nothing rather than falling through.
+---A running provider whose adapter fails to load resolves to nothing rather than falling through. An
+---adapter that opts out by returning nil is not a failure, so the search carries on past it.
 ---@param providers BridgeLib.ProviderList
 ---@param pathPrefix string?
 ---@return string? resource, table? implementation, string? failure Why the adapter failed, if it did.
@@ -290,7 +291,9 @@ function Bridge:Resolve(providers, pathPrefix)
 			if implementation then
 				return label, implementation, nil
 			end
-			return nil, nil, failure
+			if failure then
+				return nil, nil, failure
+			end
 		end
 	end
 	return nil, nil, nil
