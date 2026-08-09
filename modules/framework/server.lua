@@ -51,6 +51,10 @@
 
 local SAFE_NAME_PATTERN = "^[%w_]+$"
 
+---An empty table encodes as an object, so an array the scrub empties carries this until it is encoded.
+local EMPTY_ARRAY_MARKER = "__BridgeLibEmptyArray__"
+local EMPTY_ARRAY_PATTERN = '%["__BridgeLibEmptyArray__"%]'
+
 ---Names are interpolated rather than bound, so anything but a bare identifier is refused.
 ---@param name any
 ---@return boolean
@@ -120,6 +124,10 @@ local function scrubJson(value, identifier)
 			end
 		end
 
+		if scrubbedArray[1] == nil then
+			scrubbedArray[1] = EMPTY_ARRAY_MARKER
+		end
+
 		return scrubbedArray, changed
 	end
 
@@ -136,6 +144,12 @@ local function scrubJson(value, identifier)
 	end
 
 	return scrubbedObject, changed
+end
+
+---@param scrubbed any
+---@return string
+local function encodeScrubbed(scrubbed)
+	return (json.encode(scrubbed):gsub(EMPTY_ARRAY_PATTERN, "[]"))
 end
 
 ---@param bridge BridgeLib.Bridge
@@ -174,7 +188,7 @@ local function wipeColumn(bridge, tableName, column, identifier, wipe)
 				wipe.rowsUpdated = wipe.rowsUpdated + affectedRows(safeQuery(
 					bridge,
 					("UPDATE `%s` SET `%s` = ? WHERE `%s` = ?"):format(tableName, column, column),
-					{ json.encode(scrubbed), value }
+					{ encodeScrubbed(scrubbed), value }
 				))
 			end
 		elseif value == identifier then
