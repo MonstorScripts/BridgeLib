@@ -50,6 +50,18 @@ register("memorygame-thermite", "memorygame", function(cb, correctBlocks, incorr
 	end)
 end)
 
+register("utk-fingerprint", "utk_fingerprint", function(cb, circles, matches, time)
+	TriggerEvent("utk_fingerprint:Start", circles or 1, matches or 6, time or 1, function(outcome)
+		cb(outcome == true)
+	end)
+end)
+
+register("m-drilling", "M-drilling", function(cb)
+	TriggerEvent("Drilling:Start", function(success)
+		cb(success == true)
+	end)
+end)
+
 register("hacking-opengame", "hacking", function(cb, duration, length, amount)
 	exports["hacking"]:OpenHackingGame(duration, length, amount, cb)
 end)

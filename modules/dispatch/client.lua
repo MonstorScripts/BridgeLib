@@ -52,6 +52,9 @@ return {
 		"origen_police",
 		"codem-dispatch",
 		"tk_dispatch",
+		"aty_dispatch",
+		"rcore_dispatch",
+		"Opto_dispatch",
 	},
 	schema = schema,
 }

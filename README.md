@@ -108,19 +108,21 @@ optional module must tolerate a no-op.
 | module        | context                  | providers                        |
 | ------------- | ------------------------ | -------------------------------- |
 | `framework`   | client / server / shared | `qb-core`, `es_extended`         |
-| `inventory`   | client / server          | `qb-inventory`, `ox_inventory`, `codem-inventory`, `qs-inventory-pro`, `qs-inventory`, `origen_inventory`, and client only `lj-inventory`, `ps-inventory` |
+| `inventory`   | client / server          | `qb-inventory`, `ox_inventory`, `codem-inventory`, `qs-inventory-pro`, `qs-inventory`, `origen_inventory`, `tgiann-inventory`, `jaksam_inventory`, `core_inventory`, `one_inventory`, and client only `lj-inventory`, `ps-inventory` |
 | `target`      | client                   | `qb-target`, `ox_target`, `qtarget` |
 | `zones`       | client                   | `ox_lib`, `PolyZone`             |
-| `society`     | server                   | `esx_addonaccount`, `qb-management` |
+| `society`     | server                   | `esx_addonaccount`, `qb-management`, `Renewed-Banking`, `qb-banking`, `okokBanking`, `snipe-banking`, `tgiann-bank`, `kartik-banking` |
 | `multijob`    | server                   | `monstor-multijob`               |
 | `bossmenu`    | client / server          | `monstor-bossmenu`               |
-| `fuel`        | client                   | `rcore_fuel`, `LegacyFuel`       |
-| `vehiclekeys` | client                   | `qb-vehiclekeys`, `wasabi_carlock` |
-| `dispatch`    | client                   | `cd_dispatch`, `linden_outlawalert`, `fd_dispatch`, `ps-dispatch`, `qs-dispatch`, `core_dispatch`, `origen_police`, `codem-dispatch`, `tk_dispatch` |
+| `fuel`        | client                   | `rcore_fuel`, `LegacyFuel`, `cdn-fuel`, `okokGasStation`, `ox_fuel` |
+| `vehiclekeys` | client                   | `qb-vehiclekeys`, `wasabi_carlock`, `qs-vehiclekeys`, `vehicles_keys` |
+| `clothing`    | client                   | `illenium-appearance`, `fivem-appearance`, `tgiann-clothing`, `rcore_clothing`, `qb-clothing`, `esx_skin` |
+| `playerstatus`| client / server          | `esx_status`, `qb-core`          |
+| `dispatch`    | client                   | `cd_dispatch`, `linden_outlawalert`, `fd_dispatch`, `ps-dispatch`, `qs-dispatch`, `core_dispatch`, `origen_police`, `codem-dispatch`, `tk_dispatch`, `aty_dispatch`, `rcore_dispatch`, `Opto_dispatch` |
 | `doorlock`    | client / server          | `ox_doorlock`, `qb-doorlock`, `nui-doorlock`, `cd_doorlock`, `doors_creator` |
 | `phone`       | client / server          | `lb-phone`, `npwd`, `sql`        |
 | `email`       | client / server          | `qb-phone`, `qs-smartphone-pro`, `qs-smartphone`, `gksphone`, `roadphone`, `npwd`, `lb-phone`, `high-phone`, `yseries`, `yflip-phone`, `okokPhone` |
-| `ui`          | client                   | `lation_ui`, `ox_lib`, `cd_drawtextui`, `qb-core`, `esx_progressbar` |
+| `ui`          | client                   | `lation_ui`, `ox_lib`, `cd_drawtextui`, `qb-core`, `esx_progressbar`, `jg-textui`, `esx_textui`, `brutal_textui`, `esx_notify`, `okokNotify`, `wasabi_notify`, `brutal_notify`, `mythic_notify` |
 | `minigames`   | client                   | `BridgeLib`                      |
 | `logging`     | server                   | `fmsdk`, `fm-logs`, `loki`, `BridgeLib` |
 
@@ -165,8 +167,24 @@ needs the `framework` module on the same bridge and logs rather than sending whe
 `ui` covers the parts of a UI resource that are not a framework's: notifications, a blocking
 progress bar, and persistent on-screen text. It is separate from `framework`, whose `Progressbar` is
 callback shaped and whose `LocalNotify` always exists — `ui` is what a server adds on top when it
-runs `ox_lib` or `lation_ui`. `cd_drawtextui` only draws text and `esx_progressbar` only runs a
-progress bar, so each leaves the rest of the module on its stubs.
+runs `ox_lib` or `lation_ui`. Only `lation_ui` and `ox_lib` cover the whole module: `cd_drawtextui`,
+`jg-textui`, `esx_textui` and `brutal_textui` only draw text, `esx_progressbar` only runs a progress
+bar, and `esx_notify`, `okokNotify`, `wasabi_notify`, `brutal_notify` and `mythic_notify` only
+notify, so each leaves the rest of the module on its stubs. One provider is picked per module, so a
+server that wants its notifications from one resource and its text from another declares the module
+it prefers and calls the other resource itself.
+
+`clothing` dresses a player in a uniform and puts them back afterwards. A uniform names only the
+pieces it replaces, so a provider leaves the rest of the character alone. `illenium-appearance`,
+`fivem-appearance` and `esx_skin` snapshot the player before the first uniform goes on and restore
+that snapshot on `RevertUniform`; `qb-clothing`, `rcore_clothing` and `tgiann-clothing` store the
+player's own skin themselves, so those reload it instead and reverting works even across a restart.
+
+`playerstatus` is hunger and thirst, which both frameworks own rather than a separate resource, so
+its providers are the framework itself. `AddPlayerStatus` tops a player up rather than setting a
+level, capped at 100, so a meal is worth the same whether the player was full or starving. The
+values are percentages on either framework, although esx_status stores them on a 0 to 1,000,000
+scale underneath.
 
 `minigames` is the one module that is not a choice between interchangeable resources: a caller names
 the exact minigame, and a server can run several of the resources at once. So the library hosts the

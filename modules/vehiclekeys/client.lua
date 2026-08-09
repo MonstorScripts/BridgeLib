@@ -13,6 +13,8 @@ return {
 	providers = {
 		"qb-vehiclekeys",
 		"wasabi_carlock",
+		"qs-vehiclekeys",
+		"vehicles_keys",
 	},
 	schema = schema,
 }

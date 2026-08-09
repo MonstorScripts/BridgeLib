@@ -28,6 +28,10 @@ return {
 		"origen_inventory",
 		"lj-inventory",
 		"ps-inventory",
+		"tgiann-inventory",
+		"jaksam_inventory",
+		"core_inventory",
+		"one_inventory",
 	},
 	required = {
 		"HasItem",

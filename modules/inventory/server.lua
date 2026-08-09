@@ -115,6 +115,10 @@ return {
 		"qs-inventory-pro",
 		"qs-inventory",
 		"origen_inventory",
+		"tgiann-inventory",
+		"jaksam_inventory",
+		"core_inventory",
+		"one_inventory",
 	},
 	---Only the item handling every supported inventory exposes. The stash and slot functions below it
 	---are ox_inventory and qb-inventory only, so a provider that omits one keeps the schema stub.

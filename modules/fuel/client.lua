@@ -13,6 +13,9 @@ return {
 	providers = {
 		"rcore_fuel",
 		"LegacyFuel",
+		"cdn-fuel",
+		"okokGasStation",
+		"ox_fuel",
 	},
 	schema = schema,
 }

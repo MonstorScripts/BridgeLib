@@ -25,6 +25,12 @@ return {
 	providers = {
 		"esx_addonaccount",
 		"qb-management",
+		"Renewed-Banking",
+		"qb-banking",
+		"okokBanking",
+		"snipe-banking",
+		"tgiann-bank",
+		"kartik-banking",
 	},
 	required = {
 		"GetSocietyMoney",
