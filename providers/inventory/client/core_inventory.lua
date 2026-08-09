@@ -9,6 +9,11 @@ local provider = {
 	GetImagePath = function()
 		return "core_inventory/html/images"
 	end,
+
+	OpenInventory = function(inventoryType, data)
+		TriggerServerEvent("core_inventory:server:openInventory", data and data.id, inventoryType)
+		return true
+	end,
 }
 
 return provider

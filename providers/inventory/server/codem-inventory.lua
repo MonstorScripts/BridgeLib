@@ -100,6 +100,10 @@ local provider = {
 		return slots
 	end,
 
+	GetInventory = function(id)
+		return exports[RESOURCE_INVENTORY]:GetStashItems(id)
+	end,
+
 	---codem reads whole inventories by stash id only, so a player source returns nothing.
 	GetInventoryItems = function(id)
 		return exports[RESOURCE_INVENTORY]:GetStashItems(id) or {}

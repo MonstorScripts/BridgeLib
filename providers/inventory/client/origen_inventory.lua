@@ -23,6 +23,15 @@ local provider = {
 	HasItem = function(name, amount)
 		return countItem(name) >= (amount or 1)
 	end,
+
+	GetImagePath = function()
+		return "origen_inventory/html/images"
+	end,
+
+	OpenInventory = function(inventoryType, data)
+		exports[RESOURCE_INVENTORY]:openInventory(inventoryType, data and data.id, data)
+		return true
+	end,
 }
 
 return provider
