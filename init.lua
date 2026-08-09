@@ -303,10 +303,7 @@ end
 function Bridge:Load(providers, pathPrefix)
 	local resource, implementation, failure = self:Resolve(providers, pathPrefix)
 	if not resource or not implementation then
-		self:Fatal(
-			failure
-				or ("Failed to load any supported resource, supported resources are '%s'"):format(describe(providers))
-		)
+		self:Fatal(failure or ("Failed to load any supported resource, supported resources are '%s'"):format(describe(providers)))
 		return nil
 	end
 
@@ -322,9 +319,7 @@ end
 function Bridge:LoadOptional(providers, pathPrefix)
 	local resource, implementation, failure = self:Resolve(providers, pathPrefix)
 	if not resource or not implementation then
-		self:Debug(
-			failure or ("No optional resource found (supported: '%s'), using defaults"):format(describe(providers))
-		)
+		self:Debug(failure or ("No optional resource found (supported: '%s'), using defaults"):format(describe(providers)))
 		return nil
 	end
 

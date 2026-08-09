@@ -246,11 +246,7 @@ end
 ---@param resourceName string
 ---@param language string
 function Locales.Fetch(bridge, settings, resourceName, language)
-	local url = ("%s/v1/scripts/%s/locales/%s?shape=nested"):format(
-		settings.apiUrl or Locales.ApiUrl,
-		resourceName:lower(),
-		language
-	)
+	local url = ("%s/v1/scripts/%s/locales/%s?shape=nested"):format(settings.apiUrl or Locales.ApiUrl, resourceName:lower(), language)
 
 	bridge:Verbose(("Requesting translations from %s"):format(url))
 
@@ -290,35 +286,18 @@ function Locales.Fetch(bridge, settings, resourceName, language)
 		Locales.Merge(rebuilt, Locales.overrides[resourceName])
 
 		if not Locales.Differs(previous, rebuilt) then
-			Locales.Report(
-				resourceName,
-				language,
-				("downloaded %d strings, nothing the files already had has changed"):format(downloaded)
-			)
+			Locales.Report(resourceName, language, ("downloaded %d strings, nothing the files already had has changed"):format(downloaded))
 			return
 		end
 
 		Locales.strings[resourceName] = rebuilt
 
-		Locales.Report(
-			resourceName,
-			language,
-			("downloaded %d strings, %d of %d keys translated, cached in locales/%s.json"):format(
-				downloaded,
-				translated,
-				shipped,
-				language
-			)
-		)
+		Locales.Report(resourceName, language, ("downloaded %d strings, %d of %d keys translated, cached in locales/%s.json"):format(downloaded, translated, shipped, language))
 
 		local stillOverridden = Locales.SharedCount(overlay, Locales.overrides[resourceName])
 
 		if stillOverridden > 0 then
-			Locales.Report(
-				resourceName,
-				language,
-				("%d of them stay replaced by locales/%s.local.json"):format(stillOverridden, language)
-			)
+			Locales.Report(resourceName, language, ("%d of them stay replaced by locales/%s.local.json"):format(stillOverridden, language))
 		end
 
 		TriggerClientEvent(Locales.DeliverEvent, -1, resourceName, Locales.strings[resourceName])
@@ -406,23 +385,11 @@ function Locales.Register(bridge)
 	local replaced = Locales.SharedCount(Locales.source[resourceName], Locales.overrides[resourceName])
 
 	if replaced > 0 then
-		Locales.Report(
-			resourceName,
-			language,
-			("%d strings replaced from locales/%s.local.json"):format(replaced, language)
-		)
+		Locales.Report(resourceName, language, ("%d strings replaced from locales/%s.local.json"):format(replaced, language))
 	end
 
 	if overridden > replaced then
-		Locales.Report(
-			resourceName,
-			language,
-			("%d keys in locales/%s.local.json match no shipped string, so nothing renders them"):format(
-				overridden - replaced,
-				language
-			),
-			true
-		)
+		Locales.Report(resourceName, language, ("%d keys in locales/%s.local.json match no shipped string, so nothing renders them"):format(overridden - replaced, language), true)
 	end
 
 	GlobalState[Locales.LanguageKey] = language
@@ -434,12 +401,7 @@ function Locales.Register(bridge)
 		return
 	end
 
-	Locales.Report(
-		resourceName,
-		language,
-		cached > 0 and ("using %d strings from file, checking the API for changes"):format(cached)
-			or "nothing on file yet, asking the API"
-	)
+	Locales.Report(resourceName, language, cached > 0 and ("using %d strings from file, checking the API for changes"):format(cached) or "nothing on file yet, asking the API")
 
 	CreateThread(function()
 		Wait(settings.delay or Locales.Delay)

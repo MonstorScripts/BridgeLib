@@ -165,11 +165,7 @@ local function wipeColumn(bridge, tableName, column, identifier, wipe)
 
 	wipe.columnsVisited = wipe.columnsVisited + 1
 
-	local rows = safeQuery(
-		bridge,
-		("SELECT `%s` FROM `%s` WHERE `%s` LIKE ?"):format(column, tableName, column),
-		{ "%" .. identifier .. "%" }
-	)
+	local rows = safeQuery(bridge, ("SELECT `%s` FROM `%s` WHERE `%s` LIKE ?"):format(column, tableName, column), { "%" .. identifier .. "%" })
 
 	if not rows or #rows == 0 then
 		return
@@ -185,11 +181,8 @@ local function wipeColumn(bridge, tableName, column, identifier, wipe)
 			local scrubbed, changed = scrubJson(decoded, identifier)
 
 			if changed then
-				wipe.rowsUpdated = wipe.rowsUpdated + affectedRows(safeQuery(
-					bridge,
-					("UPDATE `%s` SET `%s` = ? WHERE `%s` = ?"):format(tableName, column, column),
-					{ encodeScrubbed(scrubbed), value }
-				))
+				wipe.rowsUpdated = wipe.rowsUpdated
+					+ affectedRows(safeQuery(bridge, ("UPDATE `%s` SET `%s` = ? WHERE `%s` = ?"):format(tableName, column, column), { encodeScrubbed(scrubbed), value }))
 			end
 		elseif value == identifier then
 			hasExactMatch = true
@@ -197,11 +190,7 @@ local function wipeColumn(bridge, tableName, column, identifier, wipe)
 	end
 
 	if hasExactMatch then
-		wipe.rowsDeleted = wipe.rowsDeleted + affectedRows(safeQuery(
-			bridge,
-			("DELETE FROM `%s` WHERE `%s` = ?"):format(tableName, column),
-			{ identifier }
-		))
+		wipe.rowsDeleted = wipe.rowsDeleted + affectedRows(safeQuery(bridge, ("DELETE FROM `%s` WHERE `%s` = ?"):format(tableName, column), { identifier }))
 	end
 end
 
@@ -279,11 +268,7 @@ local function deleteCharacter(bridge, identity, frameworkTables, identifier, ki
 		return false, wipe
 	end
 
-	local existing = safeQuery(
-		bridge,
-		("SELECT 1 FROM `%s` WHERE `%s` = ? LIMIT 1"):format(identity.table, identity.column),
-		{ identifier }
-	)
+	local existing = safeQuery(bridge, ("SELECT 1 FROM `%s` WHERE `%s` = ? LIMIT 1"):format(identity.table, identity.column), { identifier })
 
 	if not existing or #existing == 0 then
 		bridge:Debug(("No character found for identifier '%s'"):format(identifier))
@@ -295,11 +280,7 @@ local function deleteCharacter(bridge, identity, frameworkTables, identifier, ki
 		return false, wipe
 	end
 
-	local tables = mergeCharacterTables(
-		{ [identity.table] = identity.column },
-		frameworkTables or {},
-		bridge:GetModuleConfig("framework").characterTables or {}
-	)
+	local tables = mergeCharacterTables({ [identity.table] = identity.column }, frameworkTables or {}, bridge:GetModuleConfig("framework").characterTables or {})
 
 	for tableName, columns in pairs(tables) do
 		if type(columns) == "table" then
@@ -311,12 +292,7 @@ local function deleteCharacter(bridge, identity, frameworkTables, identifier, ki
 		end
 	end
 
-	bridge:Debug(("Wiped character '%s' across %d columns: %d rows deleted, %d rewritten"):format(
-		identifier,
-		wipe.columnsVisited,
-		wipe.rowsDeleted,
-		wipe.rowsUpdated
-	))
+	bridge:Debug(("Wiped character '%s' across %d columns: %d rows deleted, %d rewritten"):format(identifier, wipe.columnsVisited, wipe.rowsDeleted, wipe.rowsUpdated))
 
 	return true, wipe
 end

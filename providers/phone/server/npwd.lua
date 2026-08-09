@@ -158,7 +158,8 @@ return function(bridge)
 		end,
 
 		GetConversationMessages = function(conversationId)
-			local messages = MySQL.query.await("SELECT author AS sender, message AS content, createdAt AS timestamp FROM npwd_messages WHERE conversation_id = ? ORDER BY createdAt ASC", { conversationId })
+			local messages =
+				MySQL.query.await("SELECT author AS sender, message AS content, createdAt AS timestamp FROM npwd_messages WHERE conversation_id = ? ORDER BY createdAt ASC", { conversationId })
 
 			return messages or {}
 		end,

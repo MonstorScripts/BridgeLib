@@ -11,9 +11,7 @@ end
 ---@param layout string
 ---@return string? key The first name the queries interpolate that is missing or not a bare identifier.
 local function unusableName(database, layout)
-	local keys = layout == "pair"
-			and { "conversationsTable", "conversationColumn", "firstNumberColumn", "secondNumberColumn" }
-		or { "membersTable", "conversationColumn", "numberColumn" }
+	local keys = layout == "pair" and { "conversationsTable", "conversationColumn", "firstNumberColumn", "secondNumberColumn" } or { "membersTable", "conversationColumn", "numberColumn" }
 
 	keys[#keys + 1] = "messagesTable"
 	keys[#keys + 1] = "senderColumn"
@@ -139,12 +137,7 @@ return function(bridge)
 
 	local unusable = unusableName(database, layout)
 	if unusable then
-		bridge:Debug(
-			("The phone database config's '%s' is missing or is not a bare table or column name, so the '%s' layout cannot be queried"):format(
-				unusable,
-				layout
-			)
-		)
+		bridge:Debug(("The phone database config's '%s' is missing or is not a bare table or column name, so the '%s' layout cannot be queried"):format(unusable, layout))
 		return nil
 	end
 
