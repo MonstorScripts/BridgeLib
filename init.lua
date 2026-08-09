@@ -239,31 +239,33 @@ function Bridge:Install(schema)
 	end
 end
 
----Returns nil rather than raising when the adapter fails to load or yields the wrong shape.
+---Returns nil rather than raising when the adapter fails. An adapter returning nil opts out, which is
+---not a failure, so it reports no reason.
 ---@param provider string
 ---@param module string
----@return table? implementation
+---@return table? implementation, string? failure
 function Bridge:LoadModule(provider, module)
 	local success, result = pcall(self.require, module)
 	if not success then
-		self:Debug(("Error loading module '%s' for provider '%s': %s"):format(module, provider, result))
-		return nil
+		return nil, ("Loading module '%s' for provider '%s' raised: %s"):format(module, provider, tostring(result))
 	end
 
 	if type(result) == "function" then
 		success, result = pcall(result, self)
 		if not success then
-			self:Debug(("Error building module '%s' for provider '%s': %s"):format(module, provider, result))
-			return nil
+			return nil, ("Building module '%s' for provider '%s' raised: %s"):format(module, provider, tostring(result))
 		end
 	end
 
-	if type(result) ~= "table" then
-		self:Debug(("Module '%s' for provider '%s' did not return a table"):format(module, provider))
-		return nil
+	if result == nil then
+		return nil, nil
 	end
 
-	return result
+	if type(result) ~= "table" then
+		return nil, ("Module '%s' for provider '%s' did not return a table"):format(module, provider)
+	end
+
+	return result, nil
 end
 
 ---@param resource string
@@ -279,19 +281,19 @@ end
 ---A running provider whose adapter fails to load resolves to nothing rather than falling through.
 ---@param providers BridgeLib.ProviderList
 ---@param pathPrefix string?
----@return string? resource, table? implementation
+---@return string? resource, table? implementation, string? failure Why the adapter failed, if it did.
 function Bridge:Resolve(providers, pathPrefix)
 	for _, provider in ipairs(providers) do
 		local resource, module, label = resolveProvider(provider, pathPrefix)
 		if not resource or BridgeLib.HasResource(resource) then
-			local implementation = self:LoadModule(label, module)
+			local implementation, failure = self:LoadModule(label, module)
 			if implementation then
-				return label, implementation
+				return label, implementation, nil
 			end
-			return nil, nil
+			return nil, nil, failure
 		end
 	end
-	return nil, nil
+	return nil, nil, nil
 end
 
 ---Loads the first running provider onto the bridge, raising a fatal error when none is available.
@@ -299,9 +301,12 @@ end
 ---@param pathPrefix string?
 ---@return string? resource
 function Bridge:Load(providers, pathPrefix)
-	local resource, implementation = self:Resolve(providers, pathPrefix)
+	local resource, implementation, failure = self:Resolve(providers, pathPrefix)
 	if not resource or not implementation then
-		self:Fatal(("Failed to load any supported resource, supported resources are '%s'"):format(describe(providers)))
+		self:Fatal(
+			failure
+				or ("Failed to load any supported resource, supported resources are '%s'"):format(describe(providers))
+		)
 		return nil
 	end
 
@@ -315,9 +320,11 @@ end
 ---@param pathPrefix string?
 ---@return string? resource
 function Bridge:LoadOptional(providers, pathPrefix)
-	local resource, implementation = self:Resolve(providers, pathPrefix)
+	local resource, implementation, failure = self:Resolve(providers, pathPrefix)
 	if not resource or not implementation then
-		self:Debug(("No optional resource found (supported: '%s'), using defaults"):format(describe(providers)))
+		self:Debug(
+			failure or ("No optional resource found (supported: '%s'), using defaults"):format(describe(providers))
+		)
 		return nil
 	end
 
