@@ -32,6 +32,10 @@ local provider = {
 	RemoveItem = function(inv, item, count, metadata, slot)
 		return exports[RESOURCE_INVENTORY]:RemoveItem(inv, item, count or 1, slot or false, metadata or false)
 	end,
+
+	RegisterStash = function(stashId, label, slots, maxWeight, owner, groups)
+		return exports[RESOURCE_INVENTORY]:RegisterStash(stashId, slots or 50, maxWeight or 100000)
+	end,
 }
 
 return provider
