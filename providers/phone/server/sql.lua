@@ -1,3 +1,38 @@
+local SAFE_NAME_PATTERN = "^[%w_]+$"
+
+---Names are interpolated rather than bound, so anything but a bare identifier is refused.
+---@param name any
+---@return boolean
+local function isSafeName(name)
+	return type(name) == "string" and name:match(SAFE_NAME_PATTERN) ~= nil
+end
+
+---@param database table
+---@param layout string
+---@return string? key The first name the queries interpolate that is missing or not a bare identifier.
+local function unusableName(database, layout)
+	local keys = layout == "pair"
+			and { "conversationsTable", "conversationColumn", "firstNumberColumn", "secondNumberColumn" }
+		or { "membersTable", "conversationColumn", "numberColumn" }
+
+	keys[#keys + 1] = "messagesTable"
+	keys[#keys + 1] = "senderColumn"
+	keys[#keys + 1] = "contentColumn"
+	keys[#keys + 1] = "timestampColumn"
+
+	for _, key in ipairs(keys) do
+		if not isSafeName(database[key]) then
+			return key
+		end
+	end
+
+	if database.messagesConversationColumn ~= nil and not isSafeName(database.messagesConversationColumn) then
+		return "messagesConversationColumn"
+	end
+
+	return nil
+end
+
 ---@param number string|number
 ---@return string[]
 local function lookupCandidates(number)
@@ -101,6 +136,17 @@ return function(bridge)
 	end
 
 	local layout = database.layout or "members"
+
+	local unusable = unusableName(database, layout)
+	if unusable then
+		bridge:Debug(
+			("The phone database config's '%s' is missing or is not a bare table or column name, so the '%s' layout cannot be queried"):format(
+				unusable,
+				layout
+			)
+		)
+		return nil
+	end
 
 	local messageEvent = database.messageEvent
 	if type(messageEvent) == "table" and messageEvent.name then
