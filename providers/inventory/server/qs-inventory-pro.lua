@@ -83,12 +83,12 @@ local provider = {
 	end,
 
 	RegisterStash = function(stashId, label, slots, maxWeight, owner, groups)
-		return exports[RESOURCE_INVENTORY]:RegisterStash(stashId, slots or 50, maxWeight or 100000)
+		return exports[RESOURCE_INVENTORY]:RegisterStash(type(owner) == "number" and owner or nil, stashId, slots or 50, maxWeight or 100000)
 	end,
 
 	CreateInventory = function(id, data)
 		data = data or {}
-		return exports[RESOURCE_INVENTORY]:RegisterStash(id, data.slots or 50, data.maxweight or 100000)
+		return exports[RESOURCE_INVENTORY]:RegisterStash(nil, id, data.slots or 50, data.maxweight or 100000)
 	end,
 
 	GetInventory = function(id)
