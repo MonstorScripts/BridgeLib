@@ -8,6 +8,9 @@ local LIMIT_FIELDS = 25
 local MAX_ATTEMPTS = 3
 local FALLBACK_RETRY_SECONDS = 1.0
 
+---Payloads one URL holds while Discord is unreachable, past which the oldest are dropped.
+local MAX_QUEUED = 200
+
 ---A `retry_after` above this is read as milliseconds, since no bucket is throttled for a minute.
 local SECONDS_CEILING = 60
 
@@ -15,7 +18,7 @@ local SECONDS_CEILING = 60
 local overrides = {}
 
 ---One queue per URL, holding already-encoded entries so a later mutation cannot change what is sent.
----@type table<string, { pending: string[], running: boolean }>
+---@type table<string, { pending: string[], running: boolean, dropped: number }>
 local queues = {}
 
 ---@param byte number?
@@ -209,6 +212,10 @@ return function(bridge)
 				Wait(50)
 			end
 
+			if queue.dropped > 0 then
+				bridge:Debug(("Dropped %d payloads that overflowed this webhook's queue"):format(queue.dropped))
+			end
+
 			queue.running = false
 			queues[url] = nil
 		end)
@@ -225,8 +232,15 @@ return function(bridge)
 
 		bridge:Debug(("Queued a payload for category '%s'"):format(tostring(category)))
 
-		queues[url] = queues[url] or { pending = {}, running = false }
-		queues[url].pending[#queues[url].pending + 1] = json.encode(decorate(payload))
+		local queue = queues[url] or { pending = {}, running = false, dropped = 0 }
+		queues[url] = queue
+
+		if #queue.pending >= MAX_QUEUED then
+			table.remove(queue.pending, 1)
+			queue.dropped = queue.dropped + 1
+		end
+
+		queue.pending[#queue.pending + 1] = json.encode(decorate(payload))
 
 		drain(url)
 	end
