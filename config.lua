@@ -83,8 +83,19 @@ return {
 
 			BossMenu = "",
 			Shop = "",
+			cameras = "",
+			ckanim = "",
 			clothingjob = "",
+			comserve = "",
+			delivery = "",
+			druglabs = "",
 			hunting = "",
+			motionsensors = "",
+			multijob = "",
+			pets = "",
+			smsreconstruction = "",
+			tradingcards = "",
+			vehicletracker = "",
 		},
 
 		---Overrides the name and picture Discord shows for the webhook. Left empty, Discord uses
