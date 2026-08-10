@@ -1,4 +1,7 @@
 ---Optional module: with no phone running, emails are dropped.
+---
+---npwd owns no mailbox of its own, so its entries name the mail app running alongside it rather than
+---the phone.
 ---@class BridgeLib.Email.Server
 local schema = {
 	---Sends an email to one player's own mailbox.
@@ -19,6 +22,8 @@ return {
 		"yseries",
 		"yflip-phone",
 		"okokPhone",
+		{ resource = "npwd_qbx_mail", adapter = "npwd" },
+		{ resource = "npwd_qb_mail", adapter = "npwd" },
 	},
 	required = {
 		"SendEmail",

@@ -121,7 +121,7 @@ optional module must tolerate a no-op.
 | `dispatch`    | client                   | `cd_dispatch`, `linden_outlawalert`, `fd_dispatch`, `ps-dispatch`, `qs-dispatch`, `core_dispatch`, `origen_police`, `codem-dispatch`, `tk_dispatch`, `aty_dispatch`, `rcore_dispatch`, `Opto_dispatch` |
 | `doorlock`    | client / server          | `ox_doorlock`, `qb-doorlock`, `nui-doorlock`, `cd_doorlock`, `doors_creator` |
 | `phone`       | client / server          | `lb-phone`, `npwd`, `sql`        |
-| `email`       | client / server          | `qb-phone`, `qs-smartphone-pro`, `qs-smartphone`, `gksphone`, `roadphone`, `npwd`, `lb-phone`, `high-phone`, `yseries`, `yflip-phone`, `okokPhone` |
+| `email`       | client / server          | `qb-phone`, `qs-smartphone-pro`, `qs-smartphone`, `gksphone`, `roadphone`, `npwd`, `lb-phone`, `high-phone`, `yseries`, `yflip-phone`, `okokPhone`, and server only `npwd_qbx_mail`, `npwd_qb_mail` |
 | `ui`          | client                   | `lation_ui`, `ox_lib`, `cd_drawtextui`, `qb-core`, `esx_progressbar`, `jg-textui`, `esx_textui`, `brutal_textui`, `esx_notify`, `okokNotify`, `wasabi_notify`, `brutal_notify`, `mythic_notify` |
 | `minigames`   | client                   | `BridgeLib`                      |
 | `logging`     | server                   | `fmsdk`, `fm-logs`, `loki`, `BridgeLib` |
@@ -162,7 +162,12 @@ only. A client on one of them calls the server bridge instead.
 to whoever is holding the phone; the ones on the server look the mailbox up from a source, so
 `SendEmail` there takes one. `yflip-phone` maps a framework identifier to a phone number, so it also
 needs the `framework` module on the same bridge and logs rather than sending when it is absent.
-`npwd` has no mailbox at all, so an email there arrives as a notification in its email app.
+`npwd` ships no mail app of its own, so its mailbox is whichever community app is running alongside
+it: `npwd_qbx_mail` or `npwd_qb_mail`, both of which kept qb-phone's mail events. The server adapter
+is registered against those two resources rather than `npwd`, and sends through the event that names
+a recipient, so it needs the `framework` module on the same bridge for the character identifier. The
+client adapter sends through the event that reads `source` when one of those apps is installed, and
+falls back to a notification in npwd's email app when none is.
 
 `ui` covers the parts of a UI resource that are not a framework's: notifications, a blocking
 progress bar, and persistent on-screen text. It is separate from `framework`, whose `Progressbar` is
