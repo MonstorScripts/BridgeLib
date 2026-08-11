@@ -55,6 +55,7 @@ return function(bridge)
 			return {
 				job = job,
 				grade = job and job.grade or nil,
+				position = PlayerData and PlayerData.position or nil,
 			}
 		end,
 

@@ -18,6 +18,7 @@
 ---@class BridgeLib.PlayerData
 ---@field job BridgeLib.LiveJob? nil when no player is loaded.
 ---@field grade number? Job grade level, flattened out of the framework's nesting.
+---@field position vector4? Last saved position, out of `position` on qb-core and `coords` on ESX. nil when no player is loaded.
 
 ---@class BridgeLib.Framework.Client
 local schema = {
