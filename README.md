@@ -224,6 +224,14 @@ participant (the shape lb-phone and its relatives use), and `pair`, one conversa
 both numbers in two columns. A phone that stores threads any other way needs a provider file of its
 own.
 
+`FindNumberOwner` is the one lookup that runs the other way, from a number to the character
+identifier it is registered to, which is how a feature turns a number a player typed into a player
+through `GetPlayerByIdentifier`. lb-phone reads its `phone_phones` table for it; the `sql` provider
+needs `phonesTable`, `phoneNumberColumn` and `ownerColumn` naming wherever the phone records the same
+thing, and resolves to nothing until all three are set. npwd keeps a number on the framework's own
+player row rather than a table of its own, so its lookup walks the players currently loaded and an
+offline owner resolves to nothing there.
+
 The `npwd` provider reads npwd's own `npwd_messages_participants`, `npwd_messages_conversations` and
 `npwd_messages` tables, and calls are placed with npwd's `startPhoneCall` export. Neither phone
 formats a number outside its own interface, so `FormatNumber` there is `tostring`. npwd exposes no

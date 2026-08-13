@@ -141,6 +141,12 @@ return function(bridge)
 		return nil
 	end
 
+	local ownerLookupReady = isSafeName(database.phonesTable) and isSafeName(database.phoneNumberColumn) and isSafeName(database.ownerColumn)
+
+	if not ownerLookupReady and (database.phonesTable or database.phoneNumberColumn or database.ownerColumn) then
+		bridge:Debug("The phone database config names a handset table only partly, so numbers cannot be resolved to their owner")
+	end
+
 	local messageEvent = database.messageEvent
 	if type(messageEvent) == "table" and messageEvent.name then
 		AddEventHandler(messageEvent.name, function(payload)
@@ -166,6 +172,23 @@ return function(bridge)
 
 		FormatNumber = function(number)
 			return tostring(number)
+		end,
+
+		---Only available when the owner lookup keys are configured; the thread queries do not need them.
+		FindNumberOwner = function(number)
+			if not ownerLookupReady then
+				return nil
+			end
+
+			local candidates = lookupCandidates(number)
+			if #candidates == 0 then
+				return nil
+			end
+
+			local query = ("SELECT %s AS ownerIdentifier FROM %s WHERE %s IN (%s) LIMIT 1"):format(database.ownerColumn, database.phonesTable, database.phoneNumberColumn, placeholders(candidates))
+
+			local phone = MySQL.single.await(query, candidates)
+			return phone and phone.ownerIdentifier or nil
 		end,
 
 		FindConversation = function(numberA, numberB)

@@ -20,6 +20,13 @@ local schema = {
 		return tostring(number)
 	end,
 
+	---The character identifier a number is registered to, whether or not they are connected.
+	---@param number string|number
+	---@return string? identifier
+	FindNumberOwner = function(number)
+		return nil
+	end,
+
 	---Resolves the one to one conversation two numbers share, in whatever identifier the phone uses.
 	---@param numberA string|number
 	---@param numberB string|number

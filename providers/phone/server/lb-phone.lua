@@ -68,6 +68,18 @@ return function(bridge)
 			return exports[RESOURCE_PHONE]:FormatNumber(number)
 		end,
 
+		FindNumberOwner = function(number)
+			local candidates = lookupCandidates(number)
+			if #candidates == 0 then
+				return nil
+			end
+
+			local query = ("SELECT owner_id FROM phone_phones WHERE phone_number IN (%s) LIMIT 1"):format(string.rep("?", #candidates, ","))
+
+			local phone = MySQL.single.await(query, candidates)
+			return phone and phone.owner_id or nil
+		end,
+
 		FindConversation = function(numberA, numberB)
 			local candidatesA = lookupCandidates(numberA)
 			local candidatesB = lookupCandidates(numberB)

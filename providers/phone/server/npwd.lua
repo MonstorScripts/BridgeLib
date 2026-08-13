@@ -128,6 +128,24 @@ return function(bridge)
 			return tostring(number)
 		end,
 
+		---npwd keeps numbers on the framework's own player row, so the only portable reverse lookup is
+		---over the players it currently has loaded. An offline owner resolves to nothing.
+		FindNumberOwner = function(number)
+			if type(bridge.exports.GetPlayers) ~= "function" then
+				return nil
+			end
+
+			for _, player in ipairs(bridge.exports.GetPlayers()) do
+				local owned = callerNumber(player.Source)
+
+				if owned and sameNumber(owned, number) then
+					return player.UniqueId
+				end
+			end
+
+			return nil
+		end,
+
 		FindConversation = function(numberA, numberB)
 			local candidatesA = lookupCandidates(numberA)
 			local candidatesB = lookupCandidates(numberB)

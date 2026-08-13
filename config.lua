@@ -205,6 +205,12 @@ return {
 		---	---Optional, only when the messages table names the conversation differently.
 		---	messagesConversationColumn = "channel_id",
 		---
+		---	---Optional. Where the phone records which character owns a number, which is what lets
+		---	---features resolve a number back to a player. All three are needed together.
+		---	phonesTable = "phone_phones",
+		---	phoneNumberColumn = "phone_number",
+		---	ownerColumn = "owner_id",
+		---
 		---	---Optional. Mirrors whatever event the phone fires when a message is sent, so live
 		---	---features work. Values are the field names on that event's payload table.
 		---	messageEvent = {
