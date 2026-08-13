@@ -4,37 +4,38 @@ BridgeLib is a resource-agnostic bridge for FiveM Lua resources. Declare the mod
 
 ## Installation
 
-### Standalone resource
+Download or clone BridgeLib into your server's `resources` directory as a normal resource (for example, `resources/[libs]/BridgeLib`). Do not add it as a Git submodule.
 
-Place BridgeLib in your resources directory and ensure it starts before its consumers. Consumers need `@ox_lib/init.lua` in `shared_scripts`.
+Ensure `ox_lib`, then `BridgeLib`, before any resources that use it:
+
+```cfg
+ensure ox_lib
+ensure BridgeLib
+ensure myresource
+```
+
+Consumers need `@ox_lib/init.lua` in `shared_scripts` and should load BridgeLib from its resource path:
 
 ```lua
 local BridgeLib = require("@BridgeLib.init")
 BridgeLib.SetRoot("@BridgeLib")
 ```
 
-### Submodule
-
-```bash
-git submodule add <repo-url> BridgeLib
-```
-
-Include BridgeLib and ox_lib in the consumer's manifest:
+In the consumer's manifest, include ox_lib and declare BridgeLib as a dependency:
 
 ```lua
+dependency "BridgeLib"
+
 shared_scripts({
     "@ox_lib/init.lua",
-    "BridgeLib/**.lua",
     -- your files
 })
 ```
 
-If it lives somewhere other than `BridgeLib/`, pass that path to `SetRoot`.
-
 ## Usage
 
 ```lua
-local BridgeLib = require("BridgeLib.init")
+local BridgeLib = require("@BridgeLib.init")
 
 local exports = {}
 
