@@ -2,9 +2,9 @@ fx_version "cerulean"
 game "gta5"
 lua54 "yes"
 
-author "Alivemonstor"
+author "MonstorScripts"
 description "Resource agnostic bridge layer, consumed through ox_lib require"
-version "0.5.0"
+version "1.0.0"
 
 files({
 	"init.lua",
