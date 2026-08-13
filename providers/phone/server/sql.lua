@@ -144,7 +144,7 @@ return function(bridge)
 	local ownerLookupReady = isSafeName(database.phonesTable) and isSafeName(database.phoneNumberColumn) and isSafeName(database.ownerColumn)
 
 	if not ownerLookupReady and (database.phonesTable or database.phoneNumberColumn or database.ownerColumn) then
-		bridge:Debug("The phone database config names a handset table only partly, so numbers cannot be resolved to their owner")
+		bridge:Debug("The phone database config names a phone table only partly, so numbers cannot be resolved to their owner")
 	end
 
 	local messageEvent = database.messageEvent
