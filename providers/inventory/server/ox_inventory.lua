@@ -2,29 +2,59 @@ local RESOURCE_INVENTORY = "ox_inventory"
 
 ---@type BridgeLib.Inventory.Server
 local provider = {
-	HasItem = function(...)
-		return exports[RESOURCE_INVENTORY]:HasItem(...)
+	HasItem = function(inv, item, count)
+		local held = exports[RESOURCE_INVENTORY]:GetItemCount(inv, item, nil, false) or 0
+
+		return held >= (count or 1)
 	end,
-	SetItemData = function(...)
-		return exports[RESOURCE_INVENTORY]:SetItemData(...)
+
+	SetItemData = function(inv, item, key, value)
+		local slotIds = exports[RESOURCE_INVENTORY]:GetSlotIdsWithItem(inv, item, nil, false)
+		local slotId = slotIds and slotIds[1]
+
+		if not slotId then return false end
+
+		local slot = exports[RESOURCE_INVENTORY]:GetSlot(inv, slotId)
+		local metadata = slot and slot.metadata or {}
+
+		metadata[key] = value
+
+		exports[RESOURCE_INVENTORY]:SetMetadata(inv, slotId, metadata)
+
+		return true
 	end,
-	CreateInventory = function(...)
-		return exports[RESOURCE_INVENTORY]:CreateInventory(...)
+
+	CreateInventory = function(id, data)
+		data = data or {}
+
+		return exports[RESOURCE_INVENTORY]:RegisterStash(
+			id,
+			data.label,
+			data.slots,
+			data.maxweight,
+			data.owner,
+			data.groups,
+			data.coords
+		)
 	end,
+
 	GetInventory = function(...)
 		return exports[RESOURCE_INVENTORY]:GetInventory(...)
 	end,
-	OpenInventory = function(...)
-		return exports[RESOURCE_INVENTORY]:OpenInventory(...)
+
+	OpenInventory = function(src, id)
+		return exports[RESOURCE_INVENTORY]:forceOpenInventory(src, "stash", id)
 	end,
+
 	AddItem = function(...)
 		return exports[RESOURCE_INVENTORY]:AddItem(...)
 	end,
 	RemoveItem = function(...)
 		return exports[RESOURCE_INVENTORY]:RemoveItem(...)
 	end,
-	CanAddItem = function(...)
-		return exports[RESOURCE_INVENTORY]:CanAddItem(...)
+
+	CanAddItem = function(inv, item, count)
+		return exports[RESOURCE_INVENTORY]:CanCarryItem(inv, item, count or 1) and true or false
 	end,
 
 	GetItemCount = function(inv, item)
