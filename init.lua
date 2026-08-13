@@ -42,7 +42,7 @@
 
 local BridgeLib = {}
 
-BridgeLib._VERSION = "1.0.0"
+BridgeLib._VERSION = "1.0.1"
 
 local function noop() end
 
@@ -489,6 +489,7 @@ function BridgeLib.New(options)
 	if bridge.context == "server" then
 		local success, versions = pcall(bridge.require, ("%s.versions"):format(BridgeLib.Root))
 		if success and type(versions) == "table" then
+			pcall(versions.RegisterSelf, bridge, BridgeLib.Root)
 			pcall(versions.Register, bridge)
 		end
 	end

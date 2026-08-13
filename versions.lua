@@ -191,10 +191,10 @@ function Versions.Elect(bridge, settings)
 	end)
 end
 
----Called by `BridgeLib.New` for every server bridge; a repeat call for the same resource is a no-op.
+---Registers one resource for a version check; a repeat call for the same resource is a no-op.
 ---@param bridge BridgeLib.Bridge
-function Versions.Register(bridge)
-	local resourceName = GetCurrentResourceName()
+---@param resourceName string
+function Versions.RegisterResource(bridge, resourceName)
 	local slug = resourceName:lower()
 
 	if Versions.registered[slug] then
@@ -223,6 +223,19 @@ function Versions.Register(bridge)
 	end
 
 	Versions.Elect(bridge, settings)
+end
+
+---Registers BridgeLib itself once, using its resource manifest rather than the consuming resource.
+---@param bridge BridgeLib.Bridge
+---@param resourceName string
+function Versions.RegisterSelf(bridge, resourceName)
+	Versions.RegisterResource(bridge, resourceName)
+end
+
+---Registers the resource that created this bridge.
+---@param bridge BridgeLib.Bridge
+function Versions.Register(bridge)
+	Versions.RegisterResource(bridge, GetCurrentResourceName())
 end
 
 return Versions

@@ -84,7 +84,7 @@ return exports
 
 `config.lua` holds server-only configuration, including webhooks, logging, phone SQL access, update checks, and translations. Do not add it to your resource manifest: anything in `files` is sent to clients.
 
-BridgeLib includes optional update checks and locale downloads through the Monstor Versions API. Both are enabled by default and can be configured or disabled in `config.lua`.
+BridgeLib includes optional update checks and locale downloads through the Monstor Versions API. Both are enabled by default and can be configured or disabled in `config.lua`. The update request includes BridgeLib itself and every server resource that creates a bridge.
 
 ## Extending BridgeLib
 
