@@ -143,13 +143,27 @@ return {
 			comserve = "",
 			delivery = "",
 			druglabs = "",
+			flight = "",
 			hunting = "",
 			motionsensors = "",
+			multicharacter = "",
 			multijob = "",
 			pets = "",
+			phonespy = "",
+			phonetap = "",
 			smsreconstruction = "",
 			tradingcards = "",
 			vehicletracker = "",
+
+			---Job interactions splits its logs across these, alongside the `Shop` one above.
+			Applications = "",
+			Boxes = "",
+			Crafting = "",
+			Duty = "",
+			Security = "",
+			Settings = "",
+			Stash = "",
+			Tourists = "",
 		},
 
 		---Overrides the name and picture Discord shows for the webhook. Left empty, Discord uses
