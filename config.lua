@@ -12,10 +12,10 @@
 ---here. Listing it in `files()` would hand every secret in it to every player who connects.
 
 return {
-	---Startup update check. Every server bridge enlists the resource that built it, using the resource
-	---name lowercased as the slug and the `version` from its `fxmanifest.lua`. One resource then asks
-	---the API about all of them in a single request. Nothing about the server is sent, only the slugs
-	---and versions.
+	---Startup update check. BridgeLib and every server bridge enlist the resource that built them,
+	---using the resource name lowercased as the slug and the `version` from its `fxmanifest.lua`.
+	---One resource then asks the API about all of them in a single request. Nothing about the server
+	---is sent, only the slugs and versions.
 	versions = {
 		enabled = true,
 

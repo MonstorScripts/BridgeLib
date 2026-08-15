@@ -94,6 +94,12 @@ function Versions.Enlisted()
 	return entries
 end
 
+local function encodeQueryComponent(value)
+	return (value:gsub("[^%w%-_%.~]", function(character)
+		return ("%%%02X"):format(character:byte())
+	end))
+end
+
 ---Checks every `slug@version` entry in one request, handing each result to the resource it belongs to.
 ---@param bridge BridgeLib.Bridge
 ---@param settings BridgeLib.Versions.Settings
@@ -105,7 +111,7 @@ function Versions.Check(bridge, settings, entries)
 
 	bridge:Verbose(("Checking %d resources for updates"):format(#entries))
 
-	local url = ("%s/v1/scripts/check?scripts=%s"):format(settings.apiUrl or Versions.ApiUrl, table.concat(entries, ","))
+	local url = ("%s/v1/scripts/check?scripts=%s"):format(settings.apiUrl or Versions.ApiUrl, encodeQueryComponent(table.concat(entries, ",")))
 
 	PerformHttpRequest(url, function(status, body)
 		if status ~= 200 or type(body) ~= "string" then
@@ -185,10 +191,10 @@ function Versions.Elect(bridge, settings)
 	end)
 end
 
----Called by `BridgeLib.New` for every server bridge; a repeat call for the same resource is a no-op.
+---Registers one resource for a version check; a repeat call for the same resource is a no-op.
 ---@param bridge BridgeLib.Bridge
-function Versions.Register(bridge)
-	local resourceName = GetCurrentResourceName()
+---@param resourceName string
+function Versions.RegisterResource(bridge, resourceName)
 	local slug = resourceName:lower()
 
 	if Versions.registered[slug] then
@@ -217,6 +223,19 @@ function Versions.Register(bridge)
 	end
 
 	Versions.Elect(bridge, settings)
+end
+
+---Registers BridgeLib itself once, using its resource manifest rather than the consuming resource.
+---@param bridge BridgeLib.Bridge
+---@param resourceName string
+function Versions.RegisterSelf(bridge, resourceName)
+	Versions.RegisterResource(bridge, resourceName)
+end
+
+---Registers the resource that created this bridge.
+---@param bridge BridgeLib.Bridge
+function Versions.Register(bridge)
+	Versions.RegisterResource(bridge, GetCurrentResourceName())
 end
 
 return Versions

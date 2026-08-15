@@ -43,7 +43,8 @@ local provider = {
 	end,
 
 	OpenInventory = function(src, id)
-		return exports[RESOURCE_INVENTORY]:forceOpenInventory(src, "stash", id)
+		local inventoryType = type(id) == "number" and "player" or "stash"
+		return exports[RESOURCE_INVENTORY]:forceOpenInventory(src, inventoryType, id)
 	end,
 
 	AddItem = function(...)

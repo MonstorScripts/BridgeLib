@@ -6,20 +6,35 @@ local saved = nil
 ---@param uniform BridgeLib.Clothing.Uniform
 ---@return table
 local function components(uniform)
-	return {
-		{ component_id = 3, drawable = uniform.arms, texture = 0 },
-		{ component_id = 4, drawable = uniform.pants_1, texture = uniform.pants_2 },
-		{ component_id = 6, drawable = uniform.shoes_1, texture = uniform.shoes_2 },
-		{ component_id = 7, drawable = uniform.chain_1, texture = uniform.chain_2 },
-		{ component_id = 8, drawable = uniform.tshirt_1, texture = uniform.tshirt_2 },
-		{ component_id = 11, drawable = uniform.torso_1, texture = uniform.torso_2 },
-		{
-			props = {
-				{ prop_id = 1, drawable = uniform.glasses_1 or 0, texture = uniform.glasses_2 or 0 },
-				{ prop_id = 2, drawable = uniform.ears_1 or 0, texture = uniform.ears_2 or 0 },
-			},
-		},
-	}
+	local result = {}
+	local props = {}
+
+	local function addComponent(componentId, drawable, texture)
+		if drawable ~= nil then
+			result[#result + 1] = { component_id = componentId, drawable = drawable, texture = texture or 0 }
+		end
+	end
+
+	local function addProp(propId, drawable, texture)
+		if drawable ~= nil then
+			props[#props + 1] = { prop_id = propId, drawable = drawable, texture = texture or 0 }
+		end
+	end
+
+	addComponent(3, uniform.arms, nil)
+	addComponent(4, uniform.pants_1, uniform.pants_2)
+	addComponent(6, uniform.shoes_1, uniform.shoes_2)
+	addComponent(7, uniform.chain_1, uniform.chain_2)
+	addComponent(8, uniform.tshirt_1, uniform.tshirt_2)
+	addComponent(11, uniform.torso_1, uniform.torso_2)
+	addProp(1, uniform.glasses_1, uniform.glasses_2)
+	addProp(2, uniform.ears_1, uniform.ears_2)
+
+	if #props > 0 then
+		result[#result + 1] = { props = props }
+	end
+
+	return result
 end
 
 ---@type BridgeLib.Clothing.Client
