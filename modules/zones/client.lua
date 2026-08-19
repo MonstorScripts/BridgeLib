@@ -25,6 +25,11 @@ local schema = {
 	AddCircleZone = function(coords, radius, options) end,
 
 	---@param zone BridgeLib.Zones.Zone
+	---@param coords vector3
+	---@return boolean
+	IsPointInZone = function(zone, coords) end,
+
+	---@param zone BridgeLib.Zones.Zone
 	DestroyZone = function(zone) end,
 }
 
@@ -39,6 +44,7 @@ return {
 	required = {
 		"AddPolyZone",
 		"AddCircleZone",
+		"IsPointInZone",
 		"DestroyZone",
 	},
 	schema = schema,

@@ -53,6 +53,14 @@ return function(bridge)
 			return bind(zone, options)
 		end,
 
+		IsPointInZone = function(zone, coords)
+			if type(zone) ~= "table" or not zone.id then
+				return false
+			end
+
+			return zone.id:isPointInside(coords) and true or false
+		end,
+
 		DestroyZone = function(zone)
 			if type(zone) == "table" and zone.remove then
 				zone:remove()
